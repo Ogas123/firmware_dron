@@ -1,0 +1,2 @@
+# firmware_dron
+El propósito de este proyecto integrador profesional consiste en diseñar y programar el software de control de vuelo para un vehículo aéreo no tripulado (VANT) de tipo cuadricóptero. Se busca producir un sistema embebido capaz de mantener un vuelo estacionario estable a una altitud fija en entornos interiores, garantizando la estabilidad mediante la ejecución de lazos de control realimentados.
