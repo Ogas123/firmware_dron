@@ -13,23 +13,22 @@ void initMotores() {
   apagarMotores(); // Seguridad al inicio
 }
 
-void actualizarMotores(int throttleBase, float controlRoll, float controlPitch, float controlYaw) {
+// Agregamos el parámetro 'armado'
+void actualizarMotores(bool armado, int throttleBase, float controlRoll, float controlPitch, float controlYaw) {
   
-  // SEGURIDAD 1: Si el acelerador es 0, ignoramos el PID y apagamos todo.
-  if (throttleBase == 0) {
+  // SEGURIDAD 1: Si no está armado, cortamos todo. Ignoramos el PID.
+  if (!armado) {
     apagarMotores();
-    return; // Cortamos la ejecución de la función acá mismo
+    return; 
   }
 
   // 1. EL MIXER
-  // Nota: Dependiendo de cómo conectes los motores físicamente, 
-  // vas a tener que asignar el 1, 2, 3 y 4 al pin correcto (FL, FR, BL, BR)
   int pwmMotor1 = throttleBase - controlRoll - controlPitch - controlYaw;
   int pwmMotor2 = throttleBase - controlRoll + controlPitch + controlYaw;
   int pwmMotor3 = throttleBase + controlRoll + controlPitch - controlYaw;
   int pwmMotor4 = throttleBase + controlRoll - controlPitch + controlYaw;
 
-  // SEGURIDAD 2: Saturación (Clamping) para no desbordar los 12 bits
+  // SEGURIDAD 2: Saturación (Clamping) para no desbordar los 12 bits (0 a 4095)
   // Motor 1
   if(pwmMotor1 > 4095) pwmMotor1 = 4095;
   if(pwmMotor1 < 0) pwmMotor1 = 0;
@@ -47,11 +46,10 @@ void actualizarMotores(int throttleBase, float controlRoll, float controlPitch, 
   if(pwmMotor4 < 0) pwmMotor4 = 0;
 
   // 3. Escribimos la potencia en los transistores
-  // Ajustá qué motor es cuál según el sentido de giro de tus hélices
-  ledcWrite(PIN_MOTOR_FR, pwmMotor1); // Ejemplo: Motor 1 al Front-Right
-  ledcWrite(PIN_MOTOR_BR, pwmMotor2); // Ejemplo: Motor 2 al Back-Right
-  ledcWrite(PIN_MOTOR_BL, pwmMotor3); // Ejemplo: Motor 3 al Back-Left
-  ledcWrite(PIN_MOTOR_FL, pwmMotor4); // Ejemplo: Motor 4 al Front-Left
+  ledcWrite(PIN_MOTOR_FR, pwmMotor1); 
+  ledcWrite(PIN_MOTOR_BR, pwmMotor2); 
+  ledcWrite(PIN_MOTOR_BL, pwmMotor3); 
+  ledcWrite(PIN_MOTOR_FL, pwmMotor4); 
 }
 
 void apagarMotores() {

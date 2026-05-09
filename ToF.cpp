@@ -3,6 +3,7 @@
 #include <VL53L1X.h>
 #include "Config.h"
 #include "ToF.h"
+#include "SensorFusion.h" // Importamos las matemáticas del estimador de estados
 
 VL53L1X sensorToF;
 int distanciaAlturaMM = 0;
@@ -35,14 +36,24 @@ void initToF() {
 }
 
 void leerToF() {
-  // Pregunta si hay un dato nuevo sin bloquear el procesador
+  // Pregunta si hay un dato nuevo sin bloquear el procesador a 250 Hz
   if (sensorToF.dataReady()) {
-    // .read(false) lee el dato de forma no bloqueante
+    
+    // .read(false) lee el dato de forma asíncrona
     distanciaAlturaMM = sensorToF.read(false); 
     
     // Filtro de seguridad (saturación)
     if (distanciaAlturaMM > 2000) {
        distanciaAlturaMM = 2000; 
     }
+
+    // --- ACTUALIZACIÓN DEL FILTRO DE KALMAN 2D (Corrección de Medición) ---
+    // Descartamos lecturas exactas de 0 (un error transitorio común cuando 
+    // la luz del ToF es absorbida por una superficie oscura y no regresa fotones).
+    if (distanciaAlturaMM > 0) {
+       // Le pasamos el dato fresco al modelo matemático para anclar la altitud
+       kalman_2d_update((float)distanciaAlturaMM);
+    }
   }
 }
+
