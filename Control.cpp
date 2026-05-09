@@ -82,36 +82,57 @@ void initControl() {
   PrevVelZ = 0;
 }
 
-// Función auxiliar para evitar código repetido en el cálculo del PID (Estructura Åström)
-// Resuelve el Algoritmo de Posición con Euler Forward para el integrador y Backward para el derivativo
+// ==================================================================================
+// CONTROLADOR PID DISCRETO - ALGORITMO DE POSICIÓN
+// Basado en la formulación canónica de Karl J. Åström & Tore Hägglund
+// ==================================================================================
 float calcularLazoPID(float Error, float MedidaActual, float &MedidaAnterior, 
                       float K, float Ti, float Td, 
                       float &Iterm, float &Dterm) {
   
-  // 1. Término Proporcional
+  // 1. TÉRMINO PROPORCIONAL (P)
+  // Responde al instante presente. 
+  // P(k) = K * e(k)
   float Pterm = K * Error;
 
-  // 2. Término Derivativo (Filtro pasa-bajos sobre la medición 'y' para evitar el Derivative Kick)
+  // 2. TÉRMINO DERIVATIVO (D) CON FILTRO PASA-BAJOS
+  // Discretización: Diferencia hacia atrás (Backward Euler).
+  // Justificación de Åström: Evita el "ringing" (oscilaciones numéricas) que causaría Tustin.
+  // Además, se deriva la salida 'y' (MedidaActual) y no el error 'e', para evitar impulsos 
+  // infinitos (Derivative Kick) ante cambios bruscos de setpoint.
   if (Td > 0) {
-    float ad = Td / (Td + N * h);
-    float bd = (K * Td * N) / (Td + N * h);
+    float ad = Td / (Td + N * h);   // Polo discreto del filtro derivativo
+    float bd = K * ad * N;          // Ganancia derivativa filtrada (Notación exacta de Åström)
+    
+    // Ecuación en diferencias: D(k) = ad * D(k-1) - bd * (y(k) - y(k-1))
     Dterm = ad * Dterm - bd * (MedidaActual - MedidaAnterior);
   } else {
     Dterm = 0;
   }
 
-  // 3. Salida PID Total
+  // 3. LEY DE CONTROL TOTAL
+  // Se calcula la señal de control u(k) antes de actualizar la integral.
+  // u(k) = P(k) + I(k) + D(k)
   float SalidaPID = Pterm + Iterm + Dterm;
 
-  // 4. Actualización del Integrador para el próximo ciclo (Euler Forward)
+  // 4. TÉRMINO INTEGRAL (I)
+  // Discretización: Rectangular hacia adelante (Forward Euler).
+  // Se actualiza el integrador para ser utilizado en el PRÓXIMO instante de muestreo (k+1).
   if (Ti > 0) {
-    Iterm += (K * h / Ti) * Error;
-    // Anti-Windup
+    float bi = (K * h) / Ti; // Ganancia integral discreta (Notación bi de Åström)
+    
+    // I(k+1) = I(k) + bi * e(k)
+    Iterm = Iterm + bi * Error;
+    
+    // Saturación Condicional (Anti-Windup por Clamping).
+    // Nota académica: Åström prefiere la técnica de "Back-Calculation" (Seguimiento), 
+    // pero requiere ingresar los límites físicos de saturación del motor dentro de esta función.
     if (Iterm > MAX_I_TERM) Iterm = MAX_I_TERM;
     else if (Iterm < -MAX_I_TERM) Iterm = -MAX_I_TERM;
   }
 
-  // 5. Guardar estado
+  // 5. ACTUALIZACIÓN DE MEMORIA DE ESTADO
+  // Se guarda y(k) para el cálculo de la derivada en el próximo ciclo.
   MedidaAnterior = MedidaActual;
 
   return SalidaPID;
