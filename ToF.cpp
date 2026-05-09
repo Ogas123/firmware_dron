@@ -18,9 +18,9 @@ void initToF() {
 
   sensorToF.setTimeout(500);
   if (!sensorToF.init()) {
-    Serial.println("¡Error crítico! No se detecta el VL53L1X en el I2C secundario.");
+    Serial.println("¡Error crítico! No se detecta el VL53L1X");
   } else {
-    Serial.println("Sensor ToF VL53L1X inicializado en Wire1.");
+    Serial.println("Sensor ToF VL53L1X inicializado");
   }
 
   // Configuramos el sensor para vuelo:
