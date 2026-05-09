@@ -19,7 +19,8 @@ void setup() {
 }
 
 void loop() {
-  leerIMU();
+  // 1. Refrescar los datos del sensor y correr el Filtro de Kalman
+  leerIMU(); 
   //leerToF();
 
   //Serial.print("Roll rate [°/s] = ");
@@ -38,10 +39,11 @@ void loop() {
   //Serial.print("Aceleracion Z [g] = ");
   //Serial.println(AccZ);
 
-  Serial.print("Roll [] = ");
-  Serial.print(AngleRoll);
-  Serial.print("Pitch [] = ");
-  Serial.println(AnglePitch);
+  // 2. Imprimir los ángulos YA FILTRADOS (Notación Åström)
+  Serial.print("Roll Estimado: "); 
+  Serial.print(x_hat_Roll);
+  Serial.print(" | Pitch Estimado: "); 
+  Serial.println(x_hat_Pitch);
 
-  delay(50); // Simulación temporal del tiempo de ciclo
-}
+  // 3. Garantizar el tiempo de muestreo h = 0.004 (250Hz)
+  delay(4); }
