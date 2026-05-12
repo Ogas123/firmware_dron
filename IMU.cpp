@@ -1,5 +1,6 @@
 #include <Arduino.h>
 #include <Wire.h>
+#include "Config.h"
 #include "IMU.h"
 #include "LEDs.h"
 #include "SensorFusion.h"
@@ -17,7 +18,7 @@ float AngleRoll_Acc, AnglePitch_Acc;
 
 void initIMU() {
   // 1. Iniciar bus I2C en los pines D4(SDA) y D5(SCL) del ESP32-S3
-  Wire.begin();
+  Wire.begin(PIN_IMU_SDA, PIN_IMU_SCL); 
   Wire.setClock(400000);  // Reloj I2C al máximo (Fast Mode)
   delay(250);   // Tiempo para que la IMU estabilice su energía
 

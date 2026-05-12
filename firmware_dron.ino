@@ -13,7 +13,7 @@ void setup() {
   // Inicializamos los módulos en orden
   initSensorFusion();
   initIMU();
-  initToF();
+  //initToF();
   
   // Guardamos la marca de tiempo inicial
   LoopTimer = micros();
@@ -28,7 +28,7 @@ void loop() {
   leerIMU();
 
   // Lazo Lento (~30 Hz): Verifica si hay dato nuevo y hace la Corrección de Kalman
-  leerToF();
+  //leerToF();
 
 
   // ==========================================================
@@ -40,12 +40,12 @@ void loop() {
   Serial.print("Roll_Kalman:"); Serial.print(x_hat_Roll); Serial.print(",");
   
   Serial.print("Pitch_Raw:"); Serial.print(AnglePitch_Acc); Serial.print(",");
-  Serial.print("Pitch_Kalman:"); Serial.print(x_hat_Pitch); Serial.print(",");
+  Serial.print("Pitch_Kalman:"); Serial.println(x_hat_Pitch); 
 
   // --- ALTITUD (Eje Z) ---
   //Imprimimos la lectura del ToF en mm y la estimación fusionada de Kalman
-  Serial.print("Alt_ToF_Raw:"); Serial.print(distanciaAlturaMM); Serial.print(",");
-  Serial.print("Alt_Kalman:"); Serial.println(AltitudeKalman);
+  //Serial.print("Alt_ToF_Raw:"); Serial.print(distanciaAlturaMM); Serial.print(",");
+  //Serial.print("Alt_Kalman:"); Serial.println(AltitudeKalman);
 
 
   // ==========================================================

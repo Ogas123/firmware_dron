@@ -1,22 +1,24 @@
 #include <Arduino.h>
 #include "Config.h"
-#include "Leds.h"
+#include "LEDs.h"
 
 void initLeds() {
-  pinMode(PIN_LED_SYS, OUTPUT);
-  pinMode(PIN_LED_LINK, OUTPUT);
-  pinMode(PIN_LED_ERR, OUTPUT);
+  pinMode(PIN_LED_GREEN, OUTPUT);
+  pinMode(PIN_LED_BLUE, OUTPUT);
+  pinMode(PIN_LED_RED, OUTPUT);
 }
 
 void setLedSys(bool estado) {
-  digitalWrite(PIN_LED_SYS, estado ? HIGH : LOW);
+  // LED Verde para sistema (System)
+  digitalWrite(PIN_LED_GREEN, estado ? HIGH : LOW);
 }
 
 void setLedLink(bool estado) {
-  digitalWrite(PIN_LED_LINK, estado ? HIGH : LOW);
+  // LED Azul para conexión (Link)
+  digitalWrite(PIN_LED_BLUE, estado ? HIGH : LOW);
 }
 
 void setLedErr(bool estado) {
-  digitalWrite(PIN_LED_ERR, estado ? HIGH : LOW);
+  // LED Rojo para errores o batería baja
+  digitalWrite(PIN_LED_RED, estado ? HIGH : LOW);
 }
-
