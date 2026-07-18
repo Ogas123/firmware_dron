@@ -42,10 +42,25 @@ void recibirComandosUDP() {
     if (len > 0) {
       incomingPacket[len] = '\0';
     }
-    Serial.printf("Comando recibido: %s\n", incomingPacket);
+    
+    // Convertimos a String para facilitar la manipulación
+    String comando = String(incomingPacket);
+    comando.trim(); // Limpiamos espacios y saltos de línea ocultos
+    comando.toUpperCase(); // Hacemos que no sea sensible a mayúsculas/minúsculas
+
+    Serial.printf("Comando recibido: %s\n", comando.c_str());
+
+    // Transiciones de estado permitidas
+    if (comando == "DESPEGAR" && estadoActual == APAGADO) {
+      estadoActual = VOLANDO;
+      Serial.println("DESPEGANDO");
+    } 
+    else if (comando == "CORTAR") { // BOTÓN DE PÁNICO VITAL
+      estadoActual = APAGADO;
+      Serial.println("EMERGENCIA: MOTORES APAGADOS INSTANTÁNEAMENTE");
+    }
   }
 }
-
 
 
 

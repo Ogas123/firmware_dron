@@ -5,8 +5,11 @@
 #include "Control.h"
 #include "Motores.h"
 #include "Config.h"
+#include "Comunicaciones.h"
 
 uint32_t LoopTimer;
+
+EstadoDron estadoActual = APAGADO;
 
 void setup() {
   // Usamos una velocidad alta para que los prints no frenen el lazo de control
@@ -17,6 +20,7 @@ void setup() {
   initIMU();
   initToF();
   initMotores();
+  initComunicaciones();
   
   // Guardamos la marca de tiempo inicial
   LoopTimer = micros();
@@ -52,14 +56,23 @@ void loop() {
 
 
   // ==========================================================
-  // 3. LAZOS PID Y MOTORES
+  // 3. MAQUINA DE ESTADOS, LAZOS PID Y MOTORES
   // ==========================================================
-  if (true) {
-    calcularPID(); // Calcula PID_Roll, PID_Pitch, PID_Yaw e InputThrottle
-    
-    actualizarMotores(true, (int)InputThrottle, PID_Roll, PID_Pitch, PID_Yaw);
-  } else {
-    actualizarMotores(false, 0, 0, 0, 0); // Motores apagados
+  
+  recibirComandosUDP(); // Chequeamos si llegó algo por red
+
+  switch (estadoActual) {
+    case APAGADO:
+      InputThrottle = 0;
+      // Seguridad absoluta: motores apagados y PID ignorado
+      actualizarMotores(false, 0, 0, 0, 0); 
+      break;
+
+    case VOLANDO:
+      InputThrottle = 1000;
+      calcularPID(); 
+      actualizarMotores(true, (int)InputThrottle, PID_Roll, PID_Pitch, PID_Yaw);
+      break;
   }
 
 

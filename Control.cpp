@@ -199,5 +199,4 @@ void calcularPID() {
 
   // 3. Salida final al acelerador (Feedforward de Hover + Esfuerzo de Control)
   //InputThrottle = HoverThrottle + PID_Altitude;
-  InputThrottle = 0;
 }
