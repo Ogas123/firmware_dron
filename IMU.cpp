@@ -95,12 +95,12 @@ void leerIMU() {
   int16_t GyroY = Wire.read() << 8 | Wire.read();
   int16_t GyroZ = Wire.read() << 8 | Wire.read();
 
-  RateRoll = (float)GyroX / 65.5;
-  RatePitch = (float)GyroY / 65.5;
+  RatePitch = (float)GyroX / 65.5;
+  RateRoll = (float)GyroY / 65.5;
   RateYaw = (float)GyroZ / 65.5;
 
-  RateRoll -= offsetRoll;
   RatePitch -= offsetPitch;
+  RateRoll -= offsetRoll;
   RateYaw -= offsetYaw;
 
   // --- ACELERÓMETRO ---
@@ -118,8 +118,8 @@ void leerIMU() {
   AccZ = (float)AccZLSB / 4096.0;
 
   // 1. Calculamos el ángulo BRUTO con atan2 para evitar la división por cero (Anti-NaN)
-  AngleRoll_Acc = atan2(AccY, sqrt(AccX*AccX + AccZ*AccZ)) * RAD_TO_DEG;
-  AnglePitch_Acc = -atan2(AccX, sqrt(AccY*AccY + AccZ*AccZ)) * RAD_TO_DEG;
+  AnglePitch_Acc = atan2(AccY, sqrt(AccX*AccX + AccZ*AccZ)) * RAD_TO_DEG;
+  AngleRoll_Acc = -atan2(AccX, sqrt(AccY*AccY + AccZ*AccZ)) * RAD_TO_DEG;
 
   // 2. LA MAGIA: Pasamos los datos crudos por el Filtro de Kalman
   // Invocamos la función para Roll (usando la nueva notación)

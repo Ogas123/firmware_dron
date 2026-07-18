@@ -39,10 +39,12 @@ void loop() {
   // ==========================================================
   
   // --- ACTITUD (Ángulos) ---
-  Serial.print("Roll_Raw:"); Serial.print(AngleRoll_Acc); Serial.print(",");
+  Serial.print("Roll_acc:"); Serial.print(AngleRoll_Acc); Serial.print(",");
+  Serial.print("Roll_gyr:"); Serial.print(RateRoll); Serial.print(",");
   Serial.print("Roll_Kalman:"); Serial.print(x_hat_Roll); Serial.print(",");
   
-  Serial.print("Pitch_Raw:"); Serial.print(AnglePitch_Acc); Serial.print(",");
+  Serial.print("Pitch_acc:"); Serial.print(AnglePitch_Acc); Serial.print(",");
+  Serial.print("Pitch_gyr:"); Serial.print(RatePitch); Serial.print(",");
   Serial.print("Pitch_Kalman:"); Serial.println(x_hat_Pitch); 
 
   // --- ALTITUD (Eje Z) ---
@@ -52,7 +54,13 @@ void loop() {
   // ==========================================================
   // 3. LAZOS PID Y MOTORES
   // ==========================================================
-
+  if (true) {
+    calcularPID(); // Calcula PID_Roll, PID_Pitch, PID_Yaw e InputThrottle
+    
+    actualizarMotores(true, (int)InputThrottle, PID_Roll, PID_Pitch, PID_Yaw);
+  } else {
+    actualizarMotores(false, 0, 0, 0, 0); // Motores apagados
+  }
 
 
   // ==========================================================

@@ -2,6 +2,14 @@
 #include "Config.h"
 #include "Motores.h"
 
+// ====================================================================
+// DISPOSICIÓN FÍSICA DE LOS MOTORES (Configuración en 'X')
+// ====================================================================
+// Motor 1 (M1): Frontal Derecho   / Front-Right (FR)  -> Pin 5
+// Motor 2 (M2): Trasero Derecho   / Rear-Right  (RR)  -> Pin 6
+// Motor 3 (M3): Trasero Izquierdo / Rear-Left   (RL)  -> Pin 3
+// Motor 4 (M4): Frontal Izquierdo / Front-Left  (FL)  -> Pin 4
+// ====================================================================
 void initMotores() {
   // Utilizamos la API LEDC con el periférico PWM por hardware
   // Frecuencia: 5KHz, Resolución: 12 bits (0 a 4095)
@@ -22,10 +30,10 @@ void actualizarMotores(bool armado, int throttleBase, float controlRoll, float c
   }
 
   // 1. EL MIXER
-  int pwmMotor1 = throttleBase - controlRoll - controlPitch - controlYaw;
-  int pwmMotor2 = throttleBase - controlRoll + controlPitch + controlYaw;
-  int pwmMotor3 = throttleBase + controlRoll + controlPitch - controlYaw;
-  int pwmMotor4 = throttleBase + controlRoll - controlPitch + controlYaw;
+  int pwmMotor1 = throttleBase + controlRoll - controlPitch + controlYaw;
+  int pwmMotor2 = throttleBase + controlRoll + controlPitch - controlYaw;
+  int pwmMotor3 = throttleBase - controlRoll + controlPitch + controlYaw;
+  int pwmMotor4 = throttleBase - controlRoll - controlPitch - controlYaw;
 
   // SEGURIDAD 2: Saturación (Clamping) para no desbordar los 12 bits (0 a 4095)
   if(pwmMotor1 > 4095) pwmMotor1 = 4095;
