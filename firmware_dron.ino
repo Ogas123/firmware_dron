@@ -74,7 +74,7 @@ void loop() {
       break;
 
     case VOLANDO:
-      InputThrottle = 1000;
+      InputThrottle = 1500;
       calcularPID(); 
       actualizarMotores(true, (int)InputThrottle, PID_Roll, PID_Pitch, PID_Yaw);
       break;

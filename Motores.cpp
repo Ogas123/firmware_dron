@@ -30,10 +30,10 @@ void actualizarMotores(bool armado, int throttleBase, float controlRoll, float c
   }
 
   // 1. EL MIXER
-  int pwmMotor1 = throttleBase + controlRoll - controlPitch + controlYaw;
-  int pwmMotor2 = throttleBase + controlRoll + controlPitch - controlYaw;
-  int pwmMotor3 = throttleBase - controlRoll + controlPitch + controlYaw;
-  int pwmMotor4 = throttleBase - controlRoll - controlPitch - controlYaw;
+  int pwmMotor1 = throttleBase + controlRoll - controlPitch - controlYaw;
+  int pwmMotor2 = throttleBase + controlRoll + controlPitch + controlYaw;
+  int pwmMotor3 = throttleBase - controlRoll + controlPitch - controlYaw;
+  int pwmMotor4 = throttleBase - controlRoll - controlPitch + controlYaw;
 
   // SEGURIDAD 2: Saturación (Clamping) para no desbordar los 12 bits (0 a 4095)
   if(pwmMotor1 > 4095) pwmMotor1 = 4095;

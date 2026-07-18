@@ -49,11 +49,11 @@ void recibirComandosUDP() {
     Serial.printf("Comando recibido: %s\n", comando.c_str());
 
     // Transiciones de estado permitidas
-    if (comando == "DESPEGAR" && estadoActual == APAGADO) {
+    if (comando == "1" && estadoActual == APAGADO) {
       estadoActual = VOLANDO;
       Serial.println("DESPEGANDO");
     } 
-    else if (comando == "CORTAR") { // BOTÓN DE PÁNICO VITAL
+    else if (comando == "0") { // BOTÓN DE PÁNICO VITAL
       estadoActual = APAGADO;
       Serial.println("EMERGENCIA: MOTORES APAGADOS INSTANTÁNEAMENTE");
     }
