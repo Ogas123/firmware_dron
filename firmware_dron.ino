@@ -12,6 +12,10 @@ uint32_t LoopTimer;
 EstadoDron estadoActual = APAGADO;
 
 void setup() {
+  pinMode(PIN_LED_GREEN, OUTPUT);
+  pinMode(PIN_LED_RED, OUTPUT);
+  pinMode(PIN_LED_BLUE, OUTPUT);
+
   // Usamos una velocidad alta para que los prints no frenen el lazo de control
   Serial.begin(115200); 
   
@@ -21,6 +25,7 @@ void setup() {
   initToF();
   initMotores();
   initComunicaciones();
+
   
   // Guardamos la marca de tiempo inicial
   LoopTimer = micros();
@@ -43,16 +48,16 @@ void loop() {
   // ==========================================================
   
   // --- ACTITUD (Ángulos) ---
-  Serial.print("Roll_acc:"); Serial.print(AngleRoll_Acc); Serial.print(",");
-  Serial.print("Roll_gyr:"); Serial.print(RateRoll); Serial.print(",");
-  Serial.print("Roll_Kalman:"); Serial.print(x_hat_Roll); Serial.print(",");
+  //Serial.print("Roll_acc:"); Serial.print(AngleRoll_Acc); Serial.print(",");
+  //Serial.print("Roll_gyr:"); Serial.print(RateRoll); Serial.print(",");
+  //Serial.print("Roll_Kalman:"); Serial.print(x_hat_Roll); Serial.print(",");
   
-  Serial.print("Pitch_acc:"); Serial.print(AnglePitch_Acc); Serial.print(",");
-  Serial.print("Pitch_gyr:"); Serial.print(RatePitch); Serial.print(",");
-  Serial.print("Pitch_Kalman:"); Serial.println(x_hat_Pitch); 
+  //Serial.print("Pitch_acc:"); Serial.print(AnglePitch_Acc); Serial.print(",");
+  //Serial.print("Pitch_gyr:"); Serial.print(RatePitch); Serial.print(",");
+  //Serial.print("Pitch_Kalman:"); Serial.println(x_hat_Pitch); 
 
   // --- ALTITUD (Eje Z) ---
-  Serial.print("Alt_ToF_Raw:"); Serial.print(distanciaAlturaMM); Serial.print(",");
+  //Serial.print("Alt_ToF_Raw:"); Serial.print(distanciaAlturaMM); Serial.print(",");
 
 
   // ==========================================================

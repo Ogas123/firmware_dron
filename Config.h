@@ -39,10 +39,11 @@
 #define PIN_MOTOR_3 3
 #define PIN_MOTOR_4 4
 
-// --- ADC Batería e Interfaz ---
-#define PIN_BATERIA   8
-#define PIN_LED_GREEN 17
-#define PIN_LED_RED   12
+// --- ADC Batería y LEDs ---
+#define PIN_BATERIA   2
+
+#define PIN_LED_GREEN 9
+#define PIN_LED_RED   8
 #define PIN_LED_BLUE  7
 
 // ==========================================

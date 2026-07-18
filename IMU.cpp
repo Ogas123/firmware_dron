@@ -2,7 +2,6 @@
 #include <Wire.h>
 #include "Config.h"
 #include "IMU.h"
-#include "LEDs.h"
 #include "SensorFusion.h"
 
 // Variables de estado (Velocidad y Aceleración)
@@ -66,18 +65,14 @@ void initIMU() {
                       + AccZ * cos(roll_rad) * cos(pitch_rad);
     
     sumAccZ += (currentAccZ - 1.0f) * 9810.0f; // El error respecto a 1g
-    
-    //LED parpadeando
-    if(i % 100 == 0) setLedSys(HIGH);
-    if(i % 100 == 50) setLedSys(LOW);
-    delay(1);
+
   }
   offsetRoll = sumRoll / 2000.0;
   offsetPitch = sumPitch / 2000.0;
   offsetYaw = sumYaw / 2000.0;
   offsetAccelZ = sumAccZ / 2000.0;
   //offsets calculados
-  setLedSys(HIGH); // Dejamos el LED prendido fijo: "¡Listo para volar!"
+  digitalWrite(PIN_LED_GREEN, HIGH); // Dejamos el LED prendido fijo: "¡Listo para volar!"
 
   Serial.println("Calibración completada!");
 }
