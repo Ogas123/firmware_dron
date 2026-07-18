@@ -13,7 +13,6 @@ float offsetRoll = 0, offsetPitch = 0, offsetYaw = 0;
 float offsetAccelZ = 0;
 
 // Variables para los ángulos brutos del acelerómetro
-float EarthAccZ = 0;
 float AngleRoll_Acc, AnglePitch_Acc;
 
 void initIMU() {
@@ -124,33 +123,10 @@ void leerIMU() {
 
   // 2. LA MAGIA: Pasamos los datos crudos por el Filtro de Kalman
   // Invocamos la función para Roll (usando la nueva notación)
-  kalman_1d(x_hat_Roll, P_Roll, RateRoll, AngleRoll_Acc);
+  kalman(x_hat_Roll, P_Roll, RateRoll, AngleRoll_Acc);
   
   // Invocamos la función para Pitch (usando la nueva notación)
-  kalman_1d(x_hat_Pitch, P_Pitch, RatePitch, AnglePitch_Acc);
+  kalman(x_hat_Pitch, P_Pitch, RatePitch, AnglePitch_Acc);
 
-  // =========================================================
-  // CÁLCULO DE ALTURA Y VELOCIDAD (CINEMÁTICA PURA)
-  // =========================================================
 
-  // 1. Convertimos los ángulos estimados a radianes para la trigonometría
-  float roll_rad = x_hat_Roll * DEG_TO_RAD;
-  float pitch_rad = x_hat_Pitch * DEG_TO_RAD;
-
-  // 2. Matriz de rotación: Proyectamos la aceleración del drone (Body Frame) al marco terrestre (Earth Frame)
-  // Le restamos 1.0g al final para eliminar la gravedad. Si el drone está en reposo, EarthAccZ = 0.
-  EarthAccZ = AccX * sin(pitch_rad) 
-            - AccY * sin(roll_rad) * cos(pitch_rad) 
-            + AccZ * cos(roll_rad) * cos(pitch_rad) 
-            - 1.0f;
-
-  // 3. Convertimos la aceleración de "g" a milímetros por segundo al cuadrado (mm/s^2)
-  // 1g = 9.81 m/s^2 = 9810 mm/s^2
-  EarthAccZ = EarthAccZ * 9810.0f;
-  // RESTAMOS EL ERROR CALIBRADO
-  EarthAccZ -= offsetAccelZ; 
-
-  // --- Predicción del Filtro 2D (Ejecutado a 250 Hz) ---
-  // Empujamos el estado de altitud hacia el futuro usando la inercia
-  kalman_2d_predict(EarthAccZ);
 }

@@ -5,7 +5,7 @@
 extern float RateRoll, RatePitch, RateYaw;
 extern float AccX, AccY, AccZ;
 
-// Variables del Filtro de Kalman 1D (Actitud)
+// Variables del Filtro de Kalman (Actitud)
 extern float x_hat_Roll;
 extern float x_hat_Pitch;
 
@@ -13,8 +13,6 @@ extern float x_hat_Pitch;
 extern float AngleRoll_Acc;
 extern float AnglePitch_Acc;
 
-// Nuevas variables de Cinemática Vertical (para Filtro 2D ToF)
-extern float EarthAccZ;
 
 void initIMU();
 void leerIMU();

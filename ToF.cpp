@@ -46,14 +46,6 @@ void leerToF() {
     if (distanciaAlturaMM > 2000) {
        distanciaAlturaMM = 2000; 
     }
-
-    // --- ACTUALIZACIÓN DEL FILTRO DE KALMAN 2D (Corrección de Medición) ---
-    // Descartamos lecturas exactas de 0 (un error transitorio común cuando 
-    // la luz del ToF es absorbida por una superficie oscura y no regresa fotones).
-    if (distanciaAlturaMM > 0) {
-       // Le pasamos el dato fresco al modelo matemático para anclar la altitud
-       kalman_2d_update((float)distanciaAlturaMM);
-    }
   }
 }
 

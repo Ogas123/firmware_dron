@@ -2,7 +2,9 @@
 #include "IMU.h"
 #include "ToF.h"
 #include "SensorFusion.h"
-// #include "Control.h" // Descomentar cuando sumes los motores
+#include "Control.h"
+#include "Motores.h"
+#include "Config.h"
 
 uint32_t LoopTimer;
 
@@ -13,7 +15,8 @@ void setup() {
   // Inicializamos los módulos en orden
   initSensorFusion();
   initIMU();
-  //initToF();
+  initToF();
+  initMotores();
   
   // Guardamos la marca de tiempo inicial
   LoopTimer = micros();
@@ -27,8 +30,8 @@ void loop() {
   // Lazo Rápido (250 Hz): Lee I2C, trigonometría y Predicción de Kalman
   leerIMU();
 
-  // Lazo Lento (~30 Hz): Verifica si hay dato nuevo y hace la Corrección de Kalman
-  //leerToF();
+  // Lazo Lento (~30 Hz): Verifica si hay dato nuevo
+  leerToF();
 
 
   // ==========================================================
@@ -43,9 +46,7 @@ void loop() {
   Serial.print("Pitch_Kalman:"); Serial.println(x_hat_Pitch); 
 
   // --- ALTITUD (Eje Z) ---
-  //Imprimimos la lectura del ToF en mm y la estimación fusionada de Kalman
-  //Serial.print("Alt_ToF_Raw:"); Serial.print(distanciaAlturaMM); Serial.print(",");
-  //Serial.print("Alt_Kalman:"); Serial.println(AltitudeKalman);
+  Serial.print("Alt_ToF_Raw:"); Serial.print(distanciaAlturaMM); Serial.print(",");
 
 
   // ==========================================================

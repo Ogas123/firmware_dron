@@ -1,7 +1,11 @@
 #include <Arduino.h>
 #include "Control.h"
-#include "IMU.h" // De aquí tomamos x_hat_Roll, x_hat_Pitch y los Rate del giroscopio
-#include "SensorFusion.h" // De aquí tomamos AltitudeKalman y VelocityVerticalKalman
+#include "IMU.h" 
+#include "SensorFusion.h" 
+
+// --- IMPORTACIÓN DE VARIABLES GLOBALES EXTERNAS ---
+// Le decimos al compilador que esta variable se define en otro archivo
+extern float distanciaAlturaMM;
 
 // --- Salidas Finales a los Motores ---
 float PID_Roll = 0, PID_Pitch = 0, PID_Yaw = 0;
@@ -45,22 +49,20 @@ float PrevRateRoll = 0, PrevRatePitch = 0, PrevRateYaw = 0;
 
 
 // ====================================================================
-// 3. PARÁMETROS DE CONTROL DE ALTITUD (Cascada Posición -> Velocidad)
+// 3. PARÁMETROS DE CONTROL DE ALTITUD (Lazo Único Directo)
 // ====================================================================
-float TargetAltitude_mm = 1000.0; // Setpoint autónomo absoluto (1 metro)
-float HoverThrottle = 1500.0;     // PWM base para vencer la gravedad
+float alturaDeseada = 1000.0;     // Setpoint autónomo absoluto en milímetros (1 metro)
+float HoverThrottle = 1500.0;     // PWM base (Feedforward) para equilibrar el MTOW de 66g
 
-// Lazo Externo: Posición Z (Proporcional)
-float K_Pos_Z = 1.2;
-float MaxVelocity_Z = 600.0;      // Límite de seguridad: subida/bajada máx a 60cm/s
-float DesiredVelocityVertical = 0.0;
+// Parámetros de Diseño PID Altitud (Notación Åström)
+// Td_Alt inicia en 0. Como la medición del ToF (distanciaAlturaMM) tiene forma 
+// de "escalera" cada 33ms, una acción derivativa alta generará picos de PWM.
+// Se recomienda sintonizar primero como un controlador P o PI puro.
+float K_Alt = 1.5, Ti_Alt = 5.0, Td_Alt = 0.0; 
 
-// Lazo Interno: Velocidad Vertical Z (PID Notación Åström)
-float K_Vel_Z = 3.5, Ti_Vel_Z = 9.33, Td_Vel_Z = 0.71;
-
-float ItermVelZ = 0;
-float DtermVelZ = 0;
-float PrevVelZ = 0;
+float ItermAlt = 0;
+float DtermAlt = 0;
+float PrevAlt = 0; // Memoria del estado anterior (z)
 
 
 // --- Constantes del Sistema Discreto ---
@@ -77,9 +79,10 @@ void initControl() {
   DtermRateRoll = 0; DtermRatePitch = 0; DtermRateYaw = 0;
   PrevRateRoll = 0; PrevRatePitch = 0; PrevRateYaw = 0;
 
-  ItermVelZ = 0;
-  DtermVelZ = 0;
-  PrevVelZ = 0;
+  // Limpieza del lazo de Altitud
+  ItermAlt = 0;
+  DtermAlt = 0;
+  PrevAlt = 0;
 }
 
 // ==================================================================================
@@ -181,29 +184,20 @@ void calcularPID() {
 
 
   // ====================================================================
-  // PASO 3: CONTROL DE ALTITUD (Autónomo: Posición -> Velocidad Vertical)
-  // Entrada: TargetAltitude_mm vs. AltitudeKalman y VelocityVerticalKalman
+  // PASO 3: CONTROL DE ALTITUD (Autónomo: Lazo Único de Posición)
+  // Entrada: alturaDeseada vs. distanciaAlturaMM (Lectura del ToF VL53L1X)
   // Salida: InputThrottle
   // ====================================================================
   
-  // 1. Lazo Externo: Control de Posición Z (Genera la velocidad objetivo)
-  float ErrorAltitude = TargetAltitude_mm - AltitudeKalman;
-  DesiredVelocityVertical = K_Pos_Z * ErrorAltitude;
+  // 1. Calculamos el Error de Posición Z
+  float ErrorAltitude = alturaDeseada - distanciaAlturaMM;
 
-  // Saturación de la velocidad de ascenso/descenso
-  if (DesiredVelocityVertical > MaxVelocity_Z) DesiredVelocityVertical = MaxVelocity_Z;
-  if (DesiredVelocityVertical < -MaxVelocity_Z) DesiredVelocityVertical = -MaxVelocity_Z;
+  // 2. Evaluamos el lazo PID directo sobre la posición
+  float PID_Altitude = calcularLazoPID(ErrorAltitude, distanciaAlturaMM, PrevAlt, 
+                                       K_Alt, Ti_Alt, Td_Alt, 
+                                       ItermAlt, DtermAlt);
 
-  // 2. Lazo Interno: Control de Velocidad Z (Mantiene la velocidad objetivo)
-  float ErrorVelocityVertical = DesiredVelocityVertical - VelocityVerticalKalman;
-  float PID_VerticalVelocity = calcularLazoPID(ErrorVelocityVertical, VelocityVerticalKalman, PrevVelZ, 
-                                               K_Vel_Z, Ti_Vel_Z, Td_Vel_Z, 
-                                               ItermVelZ, DtermVelZ);
+  // 3. Salida final al acelerador (Feedforward de Hover + Esfuerzo de Control)
+  InputThrottle = HoverThrottle + PID_Altitude;
 
-  // 3. Salida final al acelerador (Feedforward de Hovering + Control PID)
-  InputThrottle = HoverThrottle + PID_VerticalVelocity;
-
-  // 4. Límite de seguridad del PWM
-  if (InputThrottle > 1800) InputThrottle = 1800;
-  if (InputThrottle < 1100) InputThrottle = 1100;
 }

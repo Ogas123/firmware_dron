@@ -4,7 +4,7 @@
 
 void initMotores() {
   // Utilizamos la API LEDC con el periférico PWM por hardware
-  // Frecuencia: 5000 Hz, Resolución: 12 bits (0 a 4095)
+  // Frecuencia: 5KHz, Resolución: 12 bits (0 a 4095)
   ledcAttach(PIN_MOTOR_1, 5000, 12);
   ledcAttach(PIN_MOTOR_2, 5000, 12);
   ledcAttach(PIN_MOTOR_3, 5000, 12);

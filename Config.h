@@ -12,6 +12,7 @@
 #define PIN_IMU_SCL 10
 
 // --- I2C Secundario (Sensor ToF VL53L1X) ---
+//NO LO USO, CONECTO EL TOF AL PRINCIPAL
 #define PIN_TOF_SDA 40
 #define PIN_TOF_SCL 41
 
@@ -25,10 +26,17 @@
 #define PIN_BUZZER_PLUS  39
 #define PIN_BUZZER_MINUS 38
 
-// --- Pines de Motores (Asumidos del V2.5C, revisar si los motores giran) ---
-#define PIN_MOTOR_1 5
+// ====================================================================
+// DISPOSICIÓN FÍSICA DE LOS MOTORES (Configuración en 'X')
+// ====================================================================
+// Motor 1 (M1): Frontal Derecho   / Front-Right (FR)  -> Pin 5
+// Motor 2 (M2): Trasero Derecho   / Rear-Right  (RR)  -> Pin 6
+// Motor 3 (M3): Trasero Izquierdo / Rear-Left   (RL)  -> Pin 3
+// Motor 4 (M4): Frontal Izquierdo / Front-Left  (FL)  -> Pin 4
+// ====================================================================
+#define PIN_MOTOR_1 5 
 #define PIN_MOTOR_2 6
-#define PIN_MOTOR_3 15
+#define PIN_MOTOR_3 3
 #define PIN_MOTOR_4 4
 
 // --- ADC Batería e Interfaz ---
