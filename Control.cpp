@@ -24,8 +24,8 @@ float DesiredRatePitch = 0.0;
 
 // Parámetros de Diseño PID Ángulo (Notación Åström)
 // Típicamente el lazo externo es solo Proporcional. Si Ti o Td son 0, se anula su acción.
-float K_Angle_Roll = 0.0, Ti_Angle_Roll = 0.0, Td_Angle_Roll = 0.0;
-float K_Angle_Pitch = 0.0, Ti_Angle_Pitch = 0.0, Td_Angle_Pitch = 0.0;
+float K_Angle_Roll = 0.5, Ti_Angle_Roll = 0.0, Td_Angle_Roll = 0.0;
+float K_Angle_Pitch = 0.5, Ti_Angle_Pitch = 0.0, Td_Angle_Pitch = 0.0;
 
 float ItermAngleRoll = 0, ItermAnglePitch = 0;
 float DtermAngleRoll = 0, DtermAnglePitch = 0;
@@ -39,9 +39,9 @@ float PrevAngleRoll = 0, PrevAnglePitch = 0; // Para el término D sobre la medi
 float DesiredRateYaw = 0.0;
 
 // Parámetros de Diseño PID Rate (Notación Åström)
-float K_Rate_Roll = 3.5, Ti_Rate_Roll = 0.0, Td_Rate_Roll = 0.0;
-float K_Rate_Pitch = 3.5, Ti_Rate_Pitch = 0.0, Td_Rate_Pitch = 0.0;
-float K_Rate_Yaw = 3.5, Ti_Rate_Yaw = 0.0, Td_Rate_Yaw = 0.0;
+float K_Rate_Roll = 0.5, Ti_Rate_Roll = 0.0, Td_Rate_Roll = 0.0;
+float K_Rate_Pitch = 0.5, Ti_Rate_Pitch = 0.0, Td_Rate_Pitch = 0.0;
+float K_Rate_Yaw = 0.5, Ti_Rate_Yaw = 0.0, Td_Rate_Yaw = 0.0;
 
 float ItermRateRoll = 0, ItermRatePitch = 0, ItermRateYaw = 0;
 float DtermRateRoll = 0, DtermRatePitch = 0, DtermRateYaw = 0;
