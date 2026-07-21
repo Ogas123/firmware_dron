@@ -1,26 +1,27 @@
 #include <Arduino.h>
 #include "IMU.h"
 #include "ToF.h"
-#include "SensorFusion.h"
-#include "Control.h"
 #include "Motores.h"
 #include "Config.h"
 #include "Comunicaciones.h"
+#include "Kalman.h"
+#include "LQR.h"
 
 uint32_t LoopTimer;
 
 EstadoDron estadoActual = APAGADO;
 
 void setup() {
-  pinMode(PIN_LED_GREEN, OUTPUT);
-  pinMode(PIN_LED_RED, OUTPUT);
-  pinMode(PIN_LED_BLUE, OUTPUT);
+  pinMode(PIN_LED_GREEN, OUTPUT); //LED SYS
+  pinMode(PIN_LED_RED, OUTPUT);   //LED ERR
+  pinMode(PIN_LED_BLUE, OUTPUT);  //LED LINK
+
+  digitalWrite(PIN_LED_GREEN, HIGH);
 
   // Usamos una velocidad alta para que los prints no frenen el lazo de control
   Serial.begin(115200); 
   
   // Inicializamos los módulos en orden
-  initSensorFusion();
   initIMU();
   initToF();
   initMotores();
@@ -46,7 +47,10 @@ void loop() {
   // ==========================================================
   // 2. TELEMETRÍA (Para el Serial Plotter)
   // ==========================================================
-  
+  Serial.print("AccX:"); Serial.print(AccX); Serial.print(",");
+  Serial.print("AccY:"); Serial.print(AccY); Serial.print(",");
+  Serial.print("AccZ:"); Serial.print(AccZ); Serial.print(",");
+
   // --- ACTITUD (Ángulos) ---
   //Serial.print("Roll_acc:"); Serial.print(AngleRoll_Acc); Serial.print(",");
   //Serial.print("Roll_gyr:"); Serial.print(RateRoll); Serial.print(",");
@@ -66,19 +70,6 @@ void loop() {
   
   recibirComandosUDP(); // Chequeamos si llegó algo por red
 
-  switch (estadoActual) {
-    case APAGADO:
-      InputThrottle = 0;
-      // Seguridad absoluta: motores apagados y PID ignorado
-      actualizarMotores(false, 0, 0, 0, 0); 
-      break;
-
-    case VOLANDO:
-      InputThrottle = 1300;
-      calcularPID(); 
-      actualizarMotores(true, (int)InputThrottle, PID_Roll, PID_Pitch, PID_Yaw);
-      break;
-  }
 
 
   // ==========================================================

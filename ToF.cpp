@@ -3,7 +3,6 @@
 #include <VL53L1X.h>
 #include "Config.h"
 #include "ToF.h"
-#include "SensorFusion.h" // Importamos las matemáticas del estimador de estados
 
 VL53L1X sensorToF;
 int distanciaAlturaMM = 0;

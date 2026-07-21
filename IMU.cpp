@@ -2,7 +2,6 @@
 #include <Wire.h>
 #include "Config.h"
 #include "IMU.h"
-#include "SensorFusion.h"
 
 // Variables de estado (Velocidad y Aceleración)
 float RateRoll, RatePitch, RateYaw;
@@ -12,22 +11,6 @@ float offsetRoll = 0, offsetPitch = 0, offsetYaw = 0;
 
 // Variables para los ángulos brutos del acelerómetro
 float AngleRoll_Acc, AnglePitch_Acc;
-
-// ==========================================================
-// PARÁMETROS CALIBRADOS LEVENBERG-MARQUARDT
-// ==========================================================
-#define ALFA_YX -0.020670
-#define ALFA_ZX 0.012738
-#define ALFA_ZY 0.016160
-
-#define S_X 1.008423
-#define S_Y 0.975793
-#define S_Z 0.956617
-
-#define B_X -0.287793
-#define B_Y -0.028362
-#define B_Z 0.539640
-// ==========================================================
 
 void initIMU() {
   // 1. Iniciar bus I2C en los pines D4(SDA) y D5(SCL) del ESP32-S3
@@ -41,10 +24,12 @@ void initIMU() {
   Wire.write(0x00); // 0x00 = Despierto
   Wire.endTransmission();
 
-  // 3. Configurar el Filtro Pasa Bajos (DLPF)
+  // ------------------------------------------------------
+  // 3. Configurar el FILTRO PASA BAJOS (DLPF)
+  // ------------------------------------------------------
   Wire.beginTransmission(0x68);  
   Wire.write(0x1A); // Registro CONFIG
-  Wire.write(0x05); // Filtro a ~10Hz
+  Wire.write(0x02); // Filtro a ~98 Hz (retraso de 2.8 ms)
   Wire.endTransmission();
 
   // 4. Configurar la escala del Giroscopio
@@ -77,7 +62,7 @@ void initIMU() {
   offsetPitch = sumPitch / 2000.0;
   offsetYaw = sumYaw / 2000.0;
   //offsets calculados
-  digitalWrite(PIN_LED_GREEN, HIGH); // Dejamos el LED prendido fijo: "¡Listo para volar!"
+  digitalWrite(PIN_LED_BLUE, HIGH); // Dejamos el LED prendido fijo: "¡Listo para volar!"
 
   Serial.println("Calibración completada!");
 }
@@ -146,7 +131,4 @@ void leerIMU() {
   // 5. Cálculo de ángulos para Kalman (Tu código actual intacto)
   AnglePitch_Acc = atan2(AccY, sqrt(AccX*AccX + AccZ*AccZ)) * RAD_TO_DEG;
   AngleRoll_Acc = -atan2(AccX, sqrt(AccY*AccY + AccZ*AccZ)) * RAD_TO_DEG;
-
-  kalman(x_hat_Roll, P_Roll, RateRoll, AngleRoll_Acc);
-  kalman(x_hat_Pitch, P_Pitch, RatePitch, AnglePitch_Acc);
 }
