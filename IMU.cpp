@@ -124,11 +124,11 @@ void leerIMU() {
   AccZ = (ALFA_ZX * a_x_2) + (ALFA_ZY * a_y_2) + a_z_2;
 
   // Opcional: Volver a convertir a unidades de gravedad 'g' si tu Kalman lo prefiere
-  AccX = AccX / 9.80665;
-  AccY = AccY / 9.80665;
-  AccZ = AccZ / 9.80665;
+  //AccX = AccX / 9.80665;
+  //AccY = AccY / 9.80665;
+  //AccZ = AccZ / 9.80665;
 
-  // 5. Cálculo de ángulos para Kalman (Tu código actual intacto)
+  // 5. Cálculo de ángulos para Kalman
   AnglePitch_Acc = atan2(AccY, sqrt(AccX*AccX + AccZ*AccZ)) * RAD_TO_DEG;
   AngleRoll_Acc = -atan2(AccX, sqrt(AccY*AccY + AccZ*AccZ)) * RAD_TO_DEG;
 }
