@@ -1,34 +1,84 @@
-# 🚁 LiteWing ESP32-S3 Flight Controller
+# Firmware de Control Óptimo (LQG) para Cuadricóptero
 
-Firmware de control de vuelo desarrollado en C++ *bare-metal* para el hardware LiteWing basado en el microcontrolador ESP32-S3. Este proyecto reemplaza los monolitos de código tradicionales por una arquitectura de software altamente modular, enfocada en la robustez matemática, el determinismo temporal y la eficiencia computacional.
+**Autor:** Agustín Schwerdt
 
-## ⚙️ Características Principales
+**Proyecto:** Tesis de Ingeniería Electrónica
 
-* **Control PID Discreto Riguroso:** Implementación basada en la teoría de control digital de Åström y Wittenmark. Incluye aproximación de Euler (Forward) para la integral, filtro pasa-bajos para el término derivativo, algoritmo de posición y protección Anti-Windup.
-* **Lazo de Control Determinista:** Ejecución estricta a 250 Hz (4000 µs) utilizando temporizadores de hardware (`micros()`) sin bloqueos ni funciones `delay()`, garantizando estabilidad en la derivada y un comportamiento lineal.
-* **Comunicaciones UDP Inalámbricas:** Eliminación del hardware de radio RC tradicional. El ESP32-S3 opera como un SoftAP Wi-Fi, recibiendo comandos de vuelo y enviando telemetría a través de paquetes UDP de alta velocidad.
-* **I2C Dual Asíncrono:** Aislamiento de hardware para sensores críticos. La IMU (MPU6050) opera en `I2C0` a 400kHz, mientras que el sensor láser ToF (VL53L1X) opera de forma paralela y no bloqueante en `I2C1`, previniendo que un fallo en el láser congele la estabilización del dron.
-* **Control de Potencia PWM de Alta Resolución:** Uso del periférico LEDC nativo del ESP32-S3 a 5000Hz con 12 bits de resolución (0-4095) y un mezclador (Mixer) con clamping de seguridad por software.
+**Arquitectura:** Linear Quadratic Gaussian (LQR + Kalman) en Tiempo Discreto
 
-## 📂 Arquitectura Modular
+**Frecuencia de Lazo:** $250\text{ Hz}$ ($T_s = 4\text{ ms}$)
 
-El proyecto está dividido en módulos independientes para facilitar la mantenibilidad y escalabilidad:
+---
 
-* `Config.h`: Matriz central de definiciones, credenciales de red, pines y calibraciones estáticas.
-* `Comunicaciones.cpp`: Gestión del stack Wi-Fi y parseo de paquetes UDP.
-* `IMU.cpp`: Inicialización, calibración dinámica de offsets y lectura matemática de la MPU6050.
-* `ToF.cpp`: Lectura no bloqueante de altitud mediante el sensor VL53L1X de STMicroelectronics.
-* `Control.cpp`: Cerebro matemático. Calcula el error y computa los esfuerzos de control en los ejes Roll, Pitch y Yaw.
-* `Motores.cpp`: Mixer cinemático que traduce las salidas del PID a comandos físicos PWM para los 4 motores con escobillas.
-* `Leds.cpp`: Feedback visual del estado del sistema replicando el comportamiento de puertos UTP sin bloquear el microprocesador.
+## 🎯 Objetivos del Proyecto
 
-## 🛠️ Hardware Utilizado
-* **Placa Controladora:** LiteWing (Basada en XIAO ESP32-S3)
-* **IMU:** MPU6050 (Acelerómetro y Giroscopio de 6 ejes)
-* **Sensor de Altitud (ToF):** VL53L1X
-* **Actuadores:** 4x Motores Brushed (DC) conectados a transistores on-board.
+El objetivo principal de este firmware es estabilizar y controlar un cuadricóptero utilizando la teoría moderna de control óptimo, superando las limitaciones empíricas de los controladores PID clásicos. La arquitectura se fundamenta en el **Principio de Separación** (Åström & Wittenmark), dividiendo el problema en dos etapas independientes pero complementarias ejecutadas en un entorno de tiempo real (FreeRTOS):
 
-## 👨‍💻 Autor
-**Agustín Schwerdt**
-Estudiante de Ingeniería Electrónica (UNCOMA). 
-Proyecto desarrollado con un enfoque profundo en la aplicación práctica de la teoría de control, diseño de hardware y robótica.
+1. **Filtro de Kalman Dinámico (LQE):** Para la estimación estocástica de estados y fusión sensorial.
+2. **Regulador Cuadrático Lineal (LQR):** Para el cálculo del esfuerzo óptimo de control mediante una matriz de ganancias calculada analíticamente.
+
+---
+
+## ⚙️ Arquitectura de Hardware
+
+El sistema está diseñado para maximizar el rendimiento computacional sin introducir retrasos de fase en la física del vehículo.
+
+| Componente | Especificación y Configuración |
+| --- | --- |
+| **Procesador** | ESP32-S3 (Dual-Core Xtensa LX7). Ejecución asimétrica con FreeRTOS. |
+| **IMU** | MPU6050 (Acelerómetro + Giroscopio). Bus I2C a $400\text{ kHz}$. DLPF configurado a $98\text{ Hz}$. |
+| **Telemetría Z** | Sensor Láser ToF VL53L1X para fusión sensorial de altitud. |
+| **Actuadores** | Motores Brushed 720 coreless. |
+| **Potencia** | MOSFETs de alta velocidad. Control LEDC PWM a $5\text{ kHz}$ (Resolución de 12 bits: $0-4095$). |
+
+---
+
+## 🧮 Fundamentación Teórica: LQG Completo de 4 Canales
+
+El vehículo ha sido modelado en espacio de estados continuo y discretizado (ZOH) en cuatro canales desacoplados: **Roll**, **Pitch**, **Yaw** y **Altura**.
+
+### 1. Estimación Óptima: Filtro de Kalman (LQE)
+
+La IMU fue calibrada en una etapa *offline* mediante el algoritmo no lineal de **Levenberg-Marquardt** en Python, mitigando los sesgos deterministas. El firmware ejecuta en tiempo real las ecuaciones recursivas de predicción y corrección para estimar el estado $\hat{x}$:
+
+$$\hat{x}(k+1\vert{}k) = \Phi \hat{x}(k\vert{}k-1) + \Gamma u(k) + K \left[ y(k) - C \hat{x}(k\vert{}k-1) \right]$$
+
+### 2. Control Óptimo: LQR
+
+Para evitar saturar la CPU, la matriz de realimentación $L$ se precalcula en estado estacionario resolviendo la Ecuación Algebraica de Riccati (DARE). El ESP32 simplemente ejecuta la ley de control lineal:
+
+$$u(k) = -L \hat{x}(k)$$
+
+---
+
+## 📂 Estructura de Archivos
+
+El código está modularizado para garantizar la máxima eficiencia del compilador de C++ y la separación limpia de responsabilidades.
+
+| Archivo | Responsabilidad Principal |
+| --- | --- |
+| `firmware_dron.ino` | Orquestador principal. Configura los *Hardware Timers*, semáforos y lanza las tareas de FreeRTOS. |
+| `Config.h` | Definición global de pines, constantes físicas del dron y parámetros estáticos. |
+| `IMU.cpp` / `.h` | Lectura veloz I2C del MPU6050 y aplicación de la matriz de calibración Levenberg-Marquardt. |
+| `ToF.cpp` / `.h` | Adquisición de distancia en el eje Z mediante el sensor láser VL53L1X. |
+| `Kalman.cpp` / `.h` | Ejecución matricial desenrollada (*unrolled*) de las 5 ecuaciones del LQE. |
+| `LQR.cpp` / `.h` | Multiplicación de la matriz de ganancia estática $L$ por los estados estimados para generar la señal $u(k)$. |
+| `Motores.cpp` / `.h` | Mixer dinámico y API LEDC del ESP32 para inyectar la señal a los MOSFETs. |
+| `Comunicaciones.cpp` / `.h` | Gestión del puerto serie, WiFi y recepción de comandos del piloto. |
+| `README.md` | Documentación arquitectónica del proyecto. |
+
+---
+
+## 🚀 Despliegue en FreeRTOS (Dual-Core)
+
+Para garantizar un determinismo matemático estricto y evitar el *jitter* de los RTOS convencionales, las cargas de trabajo se dividen físicamente en los dos núcleos del ESP32-S3:
+
+* **Core 1 (Lazo de Control de Vuelo):** Un *Hardware Timer* dispara un semáforo binario exactamente cada $4000\text{ \mu s}$ ($250\text{ Hz}$). Este núcleo ejecuta estrictamente la adquisición, el Filtro de Kalman, la ley LQR y la escritura PWM en los motores.
+* **Core 0 (Comunicaciones Asíncronas):** Ejecuta una tarea dedicada a escupir la telemetría (vía Serie/WiFi) a $50\text{ Hz}$ y procesar la radio, asegurando que el *buffer* de I/O jamás bloquee el lazo de control matemático.
+
+---
+
+## 🛠️ Notas de Seguridad y Operación
+
+* **Límite de Nyquist:** Configurado en $125\text{ Hz}$. El hardware DLPF de la IMU atenúa el ruido de los motores *brushed* garantizando que no se introduzca *aliasing* en el algoritmo estocástico.
+* **Saturación (Clamping):** Protecciones por software integradas en el mezclador de motores para evitar desbordamientos en la resolución de 12 bits del PWM ($0 - 4095$).
