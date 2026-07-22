@@ -102,10 +102,10 @@ void leerIMU() {
   int16_t AccYLSB = Wire.read() << 8 | Wire.read();
   int16_t AccZLSB = Wire.read() << 8 | Wire.read();
 
-  // 1. Lectura en m/s^2 (multiplicado por 9.80665 para mantener coherencia con Scilab)
-  float AccX_crudo = ((float)AccXLSB / 4096.0) * 9.80665;
-  float AccY_crudo = ((float)AccYLSB / 4096.0) * 9.80665;
-  float AccZ_crudo = ((float)AccZLSB / 4096.0) * 9.80665;
+  // 1. Lectura en g
+  float AccX_crudo = ((float)AccXLSB / 4096.0);
+  float AccY_crudo = ((float)AccYLSB / 4096.0);
+  float AccZ_crudo = ((float)AccZLSB / 4096.0);
 
   // 2. Restar el Offset (Vector 'b')
   float a_x_1 = AccX_crudo - B_X;
@@ -122,11 +122,6 @@ void leerIMU() {
   AccX = a_x_2;
   AccY = (ALFA_YX * a_x_2) + a_y_2;
   AccZ = (ALFA_ZX * a_x_2) + (ALFA_ZY * a_y_2) + a_z_2;
-
-  // Opcional: Volver a convertir a unidades de gravedad 'g' si tu Kalman lo prefiere
-  //AccX = AccX / 9.80665;
-  //AccY = AccY / 9.80665;
-  //AccZ = AccZ / 9.80665;
 
   // 5. Cálculo de ángulos para Kalman
   AnglePitch_Acc = atan2(AccY, sqrt(AccX*AccX + AccZ*AccZ)) * RAD_TO_DEG;

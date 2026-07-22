@@ -6,6 +6,7 @@
 
 VL53L1X sensorToF;
 int distanciaAlturaMM = 0;
+float dist_tof_m = 0;
 
 void initToF() {
   // 1. Iniciamos el SEGUNDO bus I2C (Wire1) asignando sus pines específicos
@@ -40,11 +41,13 @@ void leerToF() {
     
     // .read(false) lee el dato de forma asíncrona
     distanciaAlturaMM = sensorToF.read(false); 
-    
+
     // Filtro de seguridad (saturación)
     if (distanciaAlturaMM > 2000) {
        distanciaAlturaMM = 2000; 
     }
+
+    dist_tof_m = distanciaAlturaMM / 1000.0f;
   }
 }
 

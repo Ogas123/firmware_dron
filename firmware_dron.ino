@@ -1,6 +1,7 @@
 #include <Arduino.h>
 #include "Config.h"
 #include "IMU.h"
+#include "ToF.h"
 #include "Kalman.h"
 #include "LQR.h"
 #include "Motores.h"
@@ -17,7 +18,12 @@ extern float AngleRoll_Acc, AnglePitch_Acc;
 extern float RateRoll, RatePitch, RateYaw;
 
 // Importamos la lectura del ToF (Global en tu código)
-extern float distanciaAlturaMM; 
+extern float dist_tof_m; 
+
+extern float x_hat_roll[2];
+extern float x_hat_pitch[2];
+extern float x_hat_yaw[1];
+extern float x_hat_alt[2];
 
 // Prototipo de la tarea de telemetría
 void tareaTelemetria(void *pvParameters);
@@ -42,6 +48,7 @@ void setup() {
 
   // 1. Inicialización de todos los módulos
   initIMU();
+  initToF();
   initControl();
   initMotores();
 
@@ -82,20 +89,22 @@ void loop() {
     
     // 1. Leer Sensores
     leerIMU();
+    leerToF();
+
     float y_roll[2]  = {AngleRoll_Acc, RateRoll};
     float y_pitch[2] = {AnglePitch_Acc, RatePitch};
     float y_yaw      = RateYaw;
-    float y_alt[2]   = {distanciaAlturaMM, AccZ};
-
+    
     // 2. Filtro de Kalman Dinámico
     actualizarFiltrosLQG(u_roll, u_pitch, u_yaw, u_alt, 
-                         y_roll, y_pitch, y_yaw, y_alt);
+                         y_roll, y_pitch, y_yaw, 
+                         dist_tof_m, AccZ);
 
     // 3. Ley de Control (LQR)
-    calcularControl();
+    //calcularControl();
 
     // 4. Actuación (Mezclador a MOSFETs)
-    actualizarMotores(true, 1500, u_roll, u_pitch, u_yaw);
+    //actualizarMotores(true, 0, u_roll, u_pitch, u_yaw);
   }
 }
 
@@ -106,24 +115,28 @@ void tareaTelemetria(void *pvParameters) {
   // Bucle infinito propio de la tarea de FreeRTOS
   for(;;) {
     // Aceleraciones crudas
-    Serial.print("AccX:"); Serial.print(AccX); Serial.print(",");
-    Serial.print("AccY:"); Serial.print(AccY); Serial.print(",");
-    Serial.print("AccZ:"); Serial.print(AccZ); Serial.print(",");
+    //Serial.print("AccX:"); Serial.print(AccX); Serial.print(",");
+    //Serial.print("AccY:"); Serial.print(AccY); Serial.print(",");
+    //Serial.print("AccZ:"); Serial.print(AccZ); Serial.print(",");
 
     // Actitud ROLL (Acelerómetro vs Giroscopio vs Estimación Óptima)
-    Serial.print("Roll_acc:"); Serial.print(AngleRoll_Acc); Serial.print(",");
-    Serial.print("Roll_gyr:"); Serial.print(RateRoll); Serial.print(",");
+    //Serial.print("Roll_acc:"); Serial.print(AngleRoll_Acc); Serial.print(",");
+    //Serial.print("Roll_gyr:"); Serial.print(RateRoll); Serial.print(",");
     Serial.print("Roll_Kalman:"); Serial.print(x_hat_roll[0]); Serial.print(",");
     
     // Actitud PITCH
-    Serial.print("Pitch_acc:"); Serial.print(AnglePitch_Acc); Serial.print(",");
-    Serial.print("Pitch_gyr:"); Serial.print(RatePitch); Serial.print(",");
+    //Serial.print("Pitch_acc:"); Serial.print(AnglePitch_Acc); Serial.print(",");
+    //Serial.print("Pitch_gyr:"); Serial.print(RatePitch); Serial.print(",");
     Serial.print("Pitch_Kalman:"); Serial.print(x_hat_pitch[0]); Serial.print(","); 
 
-    // Altitud
-    Serial.print("Alt_ToF_Raw:"); Serial.print(distanciaAlturaMM);
+    // Actitud YAW
+    //Serial.print("Yaw_gyr:"); Serial.print(RateYaw); Serial.print(",");
+    Serial.print("Yaw_Kalman:"); Serial.print(x_hat_yaw[0]); Serial.print(","); 
 
-    // Importante: El salto de línea final para el Serial Plotter
+    // Altitud
+    //Serial.print("Alt_ToF_Raw:"); Serial.print(dist_tof_m); Serial.print(","); 
+    Serial.print("Alt_Kalman:"); Serial.print(x_hat_alt[0]);
+
     Serial.println(); 
 
     // Relajamos la tarea para no saturar el bus UART. 

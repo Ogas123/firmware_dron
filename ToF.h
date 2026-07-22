@@ -2,7 +2,7 @@
 #define TOF_H
 
 // Variable global para que el PID de altura la pueda leer
-extern int distanciaAlturaMM; 
+extern float dist_tof_m; 
 
 void initToF();
 void leerToF();
