@@ -1,12 +1,12 @@
 # Firmware de Control Óptimo (LQG) para Cuadricóptero
 
-**Autor:** Agustín Schwerdt
+**Autor:** Agustín
 
 **Proyecto:** Tesis de Ingeniería Electrónica
 
 **Arquitectura:** Linear Quadratic Gaussian (LQR + Kalman) en Tiempo Discreto
 
-**Frecuencia de Lazo:** $250\text{ Hz}$ ($T_s = 4\text{ ms}$)
+**Frecuencia de Lazo:** 250 Hz ($T_s$ = 4 ms)
 
 ---
 
@@ -26,10 +26,10 @@ El sistema está diseñado para maximizar el rendimiento computacional sin intro
 | Componente | Especificación y Configuración |
 | --- | --- |
 | **Procesador** | ESP32-S3 (Dual-Core Xtensa LX7). Ejecución asimétrica con FreeRTOS. |
-| **IMU** | MPU6050 (Acelerómetro + Giroscopio). Bus I2C a $400\text{ kHz}$. DLPF configurado a $98\text{ Hz}$. |
+| **IMU** | MPU6050 (Acelerómetro + Giroscopio). Bus I2C a 400 kHz. DLPF configurado a 98 Hz. |
 | **Telemetría Z** | Sensor Láser ToF VL53L1X para fusión sensorial de altitud. |
 | **Actuadores** | Motores Brushed 720 coreless. |
-| **Potencia** | MOSFETs de alta velocidad. Control LEDC PWM a $5\text{ kHz}$ (Resolución de 12 bits: $0-4095$). |
+| **Potencia** | MOSFETs de alta velocidad. Control LEDC PWM a 5 kHz (Resolución de 12 bits: 0 - 4095). |
 
 ---
 
@@ -73,12 +73,12 @@ El código está modularizado para garantizar la máxima eficiencia del compilad
 
 Para garantizar un determinismo matemático estricto y evitar el *jitter* de los RTOS convencionales, las cargas de trabajo se dividen físicamente en los dos núcleos del ESP32-S3:
 
-* **Core 1 (Lazo de Control de Vuelo):** Un *Hardware Timer* dispara un semáforo binario exactamente cada $4000\text{ \mu s}$ ($250\text{ Hz}$). Este núcleo ejecuta estrictamente la adquisición, el Filtro de Kalman, la ley LQR y la escritura PWM en los motores.
-* **Core 0 (Comunicaciones Asíncronas):** Ejecuta una tarea dedicada a escupir la telemetría (vía Serie/WiFi) a $50\text{ Hz}$ y procesar la radio, asegurando que el *buffer* de I/O jamás bloquee el lazo de control matemático.
+* **Core 1 (Lazo de Control de Vuelo):** Un *Hardware Timer* dispara un semáforo binario exactamente cada 4000 µs (250 Hz). Este núcleo ejecuta estrictamente la adquisición, el Filtro de Kalman, la ley LQR y la escritura PWM en los motores.
+* **Core 0 (Comunicaciones Asíncronas):** Ejecuta una tarea dedicada a escupir la telemetría (vía Serie/WiFi) a 50 Hz y procesar la radio, asegurando que el *buffer* de I/O jamás bloquee el lazo de control matemático.
 
 ---
 
 ## 🛠️ Notas de Seguridad y Operación
 
-* **Límite de Nyquist:** Configurado en $125\text{ Hz}$. El hardware DLPF de la IMU atenúa el ruido de los motores *brushed* garantizando que no se introduzca *aliasing* en el algoritmo estocástico.
-* **Saturación (Clamping):** Protecciones por software integradas en el mezclador de motores para evitar desbordamientos en la resolución de 12 bits del PWM ($0 - 4095$).
+* **Límite de Nyquist:** Configurado en 125 Hz. El hardware DLPF de la IMU atenúa el ruido de los motores *brushed* garantizando que no se introduzca *aliasing* en el algoritmo estocástico.
+* **Saturación (Clamping):** Protecciones por software integradas en el mezclador de motores para evitar desbordamientos en la resolución de 12 bits del PWM (0 - 4095).
