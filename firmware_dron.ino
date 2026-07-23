@@ -8,17 +8,17 @@
 #include "Comunicaciones.h"
 
 // ==========================================================
-// VARIABLES GLOBALES Y SEMÁFOROS
+// VARIABLES GLOBALES
 // ==========================================================
 hw_timer_t * controlTimer = NULL;
 SemaphoreHandle_t timerSemaphore;
 
-// Importamos las variables crudas de la IMU (Asumiendo que son globales en IMU.cpp)
+// Importamos las variables crudas de la IMU
 extern float AccX, AccY, AccZ;
 extern float AngleRoll_Acc, AnglePitch_Acc;
 extern float RateRoll, RatePitch, RateYaw;
 
-// Importamos la lectura del ToF (Global en tu código)
+// Importamos la lectura del ToF 
 extern float dist_tof_m; 
 
 extern float x_hat_roll[2];
@@ -65,7 +65,7 @@ void setup() {
     0                  // ¡Núcleo 0! (El Core 1 queda libre para el loop)
   );
 
-  // 3. Crear el semáforo y configurar el Timer de Hardware (Core 3.x)
+  // 3. Crear el semáforo y configurar el Timer de Hardware
   timerSemaphore = xSemaphoreCreateBinary();
   
   // Seteamos la frecuencia del timer a 1 MHz (1 tick = 1 microsegundo)
@@ -127,13 +127,38 @@ void loop() {
 // TAREA DE TELEMETRÍA (CORE 0) - ASÍNCRONA
 // ==========================================================
 void tareaTelemetria(void *pvParameters) {
-  // Creamos un buffer en memoria estática lo suficientemente grande 
-  // para alojar todo el texto de la telemetría (256 o 512 bytes).
+  // Creamos un buffer en memoria estática lo suficientemente grande para alojar todo el texto de la telemetría (256 o 512 bytes).
   char buffer_telemetria[512];
 
   for(;;) {
     // 1. Revisar si llegó un comando de armado/desarmado (UDP RX)
     recibirComandosUDP();
+
+    // Aceleraciones crudas
+    //Serial.print("AccX:"); Serial.print(AccX); Serial.print(",");
+    //Serial.print("AccY:"); Serial.print(AccY); Serial.print(",");
+    //Serial.print("AccZ:"); Serial.print(AccZ); Serial.print(",");
+
+    // Actitud ROLL (Acelerómetro vs Giroscopio vs Estimación Óptima)
+    Serial.print("Roll_acc:"); Serial.print(AngleRoll_Acc); Serial.print(",");
+    Serial.print("Roll_gyr:"); Serial.print(RateRoll); Serial.print(",");
+    Serial.print("Roll_Kalman:"); Serial.print(x_hat_roll[0]); Serial.print(",");
+
+    // Actitud PITCH
+    Serial.print("Pitch_acc:"); Serial.print(AnglePitch_Acc); Serial.print(",");
+    Serial.print("Pitch_gyr:"); Serial.print(RatePitch); Serial.print(",");
+    Serial.print("Pitch_Kalman:"); Serial.print(x_hat_pitch[0]); Serial.print(",");
+
+    // Actitud YAW
+    //Serial.print("Yaw_gyr:"); Serial.print(RateYaw); Serial.print(",");
+    //Serial.print("Yaw_Kalman:"); Serial.print(x_hat_yaw[0]); Serial.print(",");
+
+    // Altitud
+    Serial.print("Alt_ToF_Raw:"); Serial.print(dist_tof_m); Serial.print(",");
+    Serial.print("Alt_Kalman:"); Serial.print(x_hat_alt[0]);
+
+    Serial.println();
+
 
     // 2. Empaquetar todas las variables en un solo string de texto.
     // Usamos "%.2f" para redondear a 2 decimales y no enviar bytes innecesarios.
@@ -151,12 +176,9 @@ void tareaTelemetria(void *pvParameters) {
              dist_tof_m, x_hat_alt[0]);
 
     // 3. Enviar el paquete completo por UDP Broadcast(Convertimos el char array a String)
-    enviarMensajeUDP(String(buffer_telemetria));
-
-    // (Opcional) Lo seguimos imprimiendo por Serial también. 
-    // No cuesta nada y te sirve por si querés depurar algo con el cable enchufado.
-    Serial.println(buffer_telemetria);
-
+    //enviarMensajeUDP(String(buffer_telemetria));
+    //enviarMensajeUDP(String(AccX) + "," + String(AccY) + "," + String(AccZ));
+    
     // 4. Relajamos la tarea para no saturar el Wi-Fi ni el procesador.
     // 20 ms = 50 Hz de tasa de refresco.
     vTaskDelay(pdMS_TO_TICKS(20)); 

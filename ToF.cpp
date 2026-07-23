@@ -13,8 +13,7 @@ void initToF() {
   //Wire1.begin(PIN_TOF_SDA, PIN_TOF_SCL);
   //Wire1.setClock(400000); // Reloj a 400kHz (Fast Mode)
 
-  // 2. Le decimos a la librería de Pololu que NO use el "Wire" principal (el de la IMU),
-  // sino que se comunique exclusivamente por "Wire1".
+  // 2. Le decimos a la librería de Pololu que NO use el "Wire" principal (el de la IMU), sino que se comunique exclusivamente por "Wire1".
   //sensorToF.setBus(&Wire1);
 
   sensorToF.setTimeout(500);

@@ -51,6 +51,5 @@ void calcularControl() {
   //float err_alt_1 = x_hat_alt[1] - 0.0f; // Queremos velocidad vertical 0 al llegar a la meta
   //u_alt = -(L_alt[0] * err_alt_0 + L_alt[1] * err_alt_1);
   
-  // Nota: Estas salidas u_* se sumarán luego a tu Throttle Base (HoverThrottle) 
-  // dentro de tu función del Mixer de motores.
+  // Nota: Estas salidas u_* se sumarán luego al Throttle Base (HoverThrottle) dentro de tu función del Mixer de motores.
 }

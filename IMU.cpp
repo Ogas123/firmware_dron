@@ -102,10 +102,10 @@ void leerIMU() {
   int16_t AccYLSB = Wire.read() << 8 | Wire.read();
   int16_t AccZLSB = Wire.read() << 8 | Wire.read();
 
-  // 1. Lectura en g
-  float AccX_crudo = ((float)AccXLSB / 4096.0);
-  float AccY_crudo = ((float)AccYLSB / 4096.0);
-  float AccZ_crudo = ((float)AccZLSB / 4096.0);
+  // 1. Lectura en m/s^2
+  float AccX_crudo = ((float)AccXLSB / 4096.0) * 9.80665;
+  float AccY_crudo = ((float)AccYLSB / 4096.0) * 9.80665;
+  float AccZ_crudo = ((float)AccZLSB / 4096.0) * 9.80665;
 
   // 2. Restar el Offset (Vector 'b')
   float a_x_1 = AccX_crudo - B_X;

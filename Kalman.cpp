@@ -77,14 +77,13 @@ void updateKalmanRecursive2x2(float x[2], float P[2][2], float u, const float y[
 // ====================================================================
 // FILTRO DE KALMAN PARA ALTURA (C = [1, 0])
 // ====================================================================
-float offset_gravedad_z = 1.0f;
-
-void updateKalmanAltura(float x[2], float P[2][2], float acc_z_g, float dist_tof_m) {
+void updateKalmanAltura(float x[2], float P[2][2], float acc_z_ms2, float dist_tof_m) {
   
-  float a_net = (acc_z_g - offset_gravedad_z) * 9.80665f;
+  // Como la lectura ya está en m/s^2, la aceleración neta es una simple resta.
+  float a_net = acc_z_ms2 - 9.80665;
 
   float x_pred[2];
-  // Cambio: Usamos Ts en lugar de h
+  // Predicción cinemática usando 'h' (definido en Config.h)
   x_pred[0] = x[0] + h * x[1] + 0.5f * h * h * a_net;
   x_pred[1] = x[1] + h * a_net;
 
@@ -94,7 +93,7 @@ void updateKalmanAltura(float x[2], float P[2][2], float acc_z_g, float dist_tof
   P_pred[1][0] = P[1][0] + h*P[1][1] + Q_alt[1][0];
   P_pred[1][1] = P[1][1] + Q_alt[1][1];
 
-  float S = P_pred[0][0] + R_alt_scalar; // Uso de constante definida en Config.h
+  float S = P_pred[0][0] + R_alt_scalar; 
   
   float K[2];
   K[0] = P_pred[0][0] / S;
@@ -116,7 +115,7 @@ void updateKalmanAltura(float x[2], float P[2][2], float acc_z_g, float dist_tof
 // ====================================================================
 void actualizarFiltrosLQG(float u_roll, float u_pitch, float u_yaw, float u_alt,
                           float y_roll[2], float y_pitch[2], float y_yaw, 
-                          float dist_tof_m, float acc_z_g) {
+                          float dist_tof_m, float acc_z_ms2) { 
   
   updateKalmanRecursive2x2(x_hat_roll, P_roll, u_roll, y_roll, Gamma_roll_pitch, Q_roll_pitch, R_roll_pitch);
   updateKalmanRecursive2x2(x_hat_pitch, P_pitch, u_pitch, y_pitch, Gamma_roll_pitch, Q_roll_pitch, R_roll_pitch);
@@ -128,5 +127,5 @@ void actualizarFiltrosLQG(float u_roll, float u_pitch, float u_yaw, float u_alt,
   x_hat_yaw[0] = x_pred_yaw + K_yaw_gain * (y_yaw - x_pred_yaw);
   P_yaw[0] = (1.0f - K_yaw_gain) * P_pred_yaw;
 
-  updateKalmanAltura(x_hat_alt, P_alt, acc_z_g, dist_tof_m);
+  updateKalmanAltura(x_hat_alt, P_alt, acc_z_ms2, dist_tof_m);
 }
