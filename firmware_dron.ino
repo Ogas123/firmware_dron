@@ -140,43 +140,66 @@ void tareaTelemetria(void *pvParameters) {
     //Serial.print("AccZ:"); Serial.print(AccZ); Serial.print(",");
 
     // Actitud ROLL (Acelerómetro vs Giroscopio vs Estimación Óptima)
-    Serial.print("Roll_acc:"); Serial.print(AngleRoll_Acc); Serial.print(",");
-    Serial.print("Roll_gyr:"); Serial.print(RateRoll); Serial.print(",");
-    Serial.print("Roll_Kalman:"); Serial.print(x_hat_roll[0]); Serial.print(",");
+    //Serial.print("Roll_acc:"); Serial.print(AngleRoll_Acc); Serial.print(",");
+    //Serial.print("Roll_gyr:"); Serial.print(RateRoll); Serial.print(",");
+    //Serial.print("Roll_Kalman:"); Serial.print(x_hat_roll[0]); Serial.print(",");
 
     // Actitud PITCH
-    Serial.print("Pitch_acc:"); Serial.print(AnglePitch_Acc); Serial.print(",");
-    Serial.print("Pitch_gyr:"); Serial.print(RatePitch); Serial.print(",");
-    Serial.print("Pitch_Kalman:"); Serial.print(x_hat_pitch[0]); Serial.print(",");
+    //Serial.print("Pitch_acc:"); Serial.print(AnglePitch_Acc); Serial.print(",");
+    //Serial.print("Pitch_gyr:"); Serial.print(RatePitch); Serial.print(",");
+    //Serial.print("Pitch_Kalman:"); Serial.print(x_hat_pitch[0]); Serial.print(",");
 
     // Actitud YAW
     //Serial.print("Yaw_gyr:"); Serial.print(RateYaw); Serial.print(",");
     //Serial.print("Yaw_Kalman:"); Serial.print(x_hat_yaw[0]); Serial.print(",");
 
     // Altitud
-    Serial.print("Alt_ToF_Raw:"); Serial.print(dist_tof_m); Serial.print(",");
-    Serial.print("Alt_Kalman:"); Serial.print(x_hat_alt[0]);
+    //Serial.print("Alt_ToF_Raw:"); Serial.print(dist_tof_m); Serial.print(",");
+    //Serial.print("Alt_Kalman:"); Serial.print(x_hat_alt[0]);
 
-    Serial.println();
+    //Serial.println();
 
 
-    // 2. Empaquetar todas las variables en un solo string de texto.
-    // Usamos "%.2f" para redondear a 2 decimales y no enviar bytes innecesarios.
-    // Para la altura (ToF) usamos "%.3f" para tener precisión milimétrica.
+    // Empaquetamos agrupando por Canal y sumando el Giroscopio en Roll y Pitch
     snprintf(buffer_telemetria, sizeof(buffer_telemetria),
-             "AccX:%.2f,AccY:%.2f,AccZ:%.2f,"
-             "Roll_acc:%.2f,Roll_gyr:%.2f,Roll_Kalman:%.2f,"
-             "Pitch_acc:%.2f,Pitch_gyr:%.2f,Pitch_Kalman:%.2f,"
-             "Yaw_gyr:%.2f,Yaw_Kalman:%.2f,"
-             "Alt_ToF_Raw:%.3f,Alt_Kalman:%.3f",
+             
+             // --- 0. Sensores Crudos (Para calibrar LM) ---
+             "AccX:%.4f,AccY:%.4f,AccZ:%.4f,"
+             
+             // --- 1. Canal Roll ---
+             "Roll_Acc:%.2f,Roll_Gyr:%.2f,Roll_Kalman:%.2f,RollRate_Kalman:%.2f,"
+             
+             // --- 2. Canal Pitch ---
+             "Pitch_Acc:%.2f,Pitch_Gyr:%.2f,Pitch_Kalman:%.2f,PitchRate_Kalman:%.2f,"
+             
+             // --- 3. Canal Yaw ---
+             "YawRate_Gyr:%.2f,YawRate_Kalman:%.2f,"
+             
+             // --- 4. Canal Altura ---
+             "Alt_ToF:%.3f,Alt_Kalman:%.3f,Vz_Kalman:%.3f",
+             
+             // ==========================================
+             // VARIABLES MAPEADAS AL TEXTO SUPERIOR
+             // ==========================================
+             
+             // 0. Crudos
              AccX, AccY, AccZ,
-             AngleRoll_Acc, RateRoll, x_hat_roll[0],
-             AnglePitch_Acc, RatePitch, x_hat_pitch[0],
+             
+             // 1. Roll: Acelerómetro vs Giroscopio vs Posición (0) vs Velocidad (1)
+             AngleRoll_Acc, RateRoll, x_hat_roll[0], x_hat_roll[1],
+             
+             // 2. Pitch: Acelerómetro vs Giroscopio vs Posición (0) vs Velocidad (1)
+             AnglePitch_Acc, RatePitch, x_hat_pitch[0], x_hat_pitch[1],
+             
+             // 3. Yaw: Giroscopio vs Velocidad (0)
              RateYaw, x_hat_yaw[0],
-             dist_tof_m, x_hat_alt[0]);
+             
+             // 4. Altura: Medición ToF vs Posición (0) vs Velocidad (1)
+             dist_tof_m, x_hat_alt[0], x_hat_alt[1]
+             );
 
     // 3. Enviar el paquete completo por UDP Broadcast(Convertimos el char array a String)
-    //enviarMensajeUDP(String(buffer_telemetria));
+    enviarMensajeUDP(String(buffer_telemetria));
     //enviarMensajeUDP(String(AccX) + "," + String(AccY) + "," + String(AccZ));
     
     // 4. Relajamos la tarea para no saturar el Wi-Fi ni el procesador.
