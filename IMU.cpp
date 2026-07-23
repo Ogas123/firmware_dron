@@ -24,9 +24,9 @@ void initIMU() {
   Wire.write(0x00); // 0x00 = Despierto
   Wire.endTransmission();
 
-  // ------------------------------------------------------
-  // 3. Configurar el FILTRO PASA BAJOS (DLPF)
-  // ------------------------------------------------------
+  // --------------------------------------------------------------
+  // 3. Configurar el FILTRO PASA BAJOS (DLPF) - ANTIALIASING
+  // --------------------------------------------------------------
   Wire.beginTransmission(0x68);  
   Wire.write(0x1A); // Registro CONFIG
   Wire.write(0x02); // Filtro a ~98 Hz (retraso de 2.8 ms)

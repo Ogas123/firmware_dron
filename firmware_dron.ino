@@ -108,7 +108,7 @@ void loop() {
       calcularControl();
       
       // Enviamos señales PWM a los ESCs
-      // actualizarMotores(true, 1500, u_roll, u_pitch, u_yaw); 
+      actualizarMotores(true, 0, u_roll, u_pitch, u_yaw); 
     } 
     else {
       // Dron Apagado o en Pánico: Forzamos control a cero
@@ -127,35 +127,38 @@ void loop() {
 // TAREA DE TELEMETRÍA (CORE 0) - ASÍNCRONA
 // ==========================================================
 void tareaTelemetria(void *pvParameters) {
-  // Bucle infinito propio de la tarea de FreeRTOS
+  // Creamos un buffer en memoria estática lo suficientemente grande 
+  // para alojar todo el texto de la telemetría (256 o 512 bytes).
+  char buffer_telemetria[512];
+
   for(;;) {
-    // Aceleraciones crudas
-    //Serial.print("AccX:"); Serial.print(AccX); Serial.print(",");
-    //Serial.print("AccY:"); Serial.print(AccY); Serial.print(",");
-    //Serial.print("AccZ:"); Serial.print(AccZ); Serial.print(",");
+    // 1. Revisar si llegó un comando de armado/desarmado (UDP RX)
+    recibirComandosUDP();
 
-    // Actitud ROLL (Acelerómetro vs Giroscopio vs Estimación Óptima)
-    //Serial.print("Roll_acc:"); Serial.print(AngleRoll_Acc); Serial.print(",");
-    //Serial.print("Roll_gyr:"); Serial.print(RateRoll); Serial.print(",");
-    Serial.print("Roll_Kalman:"); Serial.print(x_hat_roll[0]); Serial.print(",");
-    
-    // Actitud PITCH
-    //Serial.print("Pitch_acc:"); Serial.print(AnglePitch_Acc); Serial.print(",");
-    //Serial.print("Pitch_gyr:"); Serial.print(RatePitch); Serial.print(",");
-    Serial.print("Pitch_Kalman:"); Serial.print(x_hat_pitch[0]); Serial.print(","); 
+    // 2. Empaquetar todas las variables en un solo string de texto.
+    // Usamos "%.2f" para redondear a 2 decimales y no enviar bytes innecesarios.
+    // Para la altura (ToF) usamos "%.3f" para tener precisión milimétrica.
+    snprintf(buffer_telemetria, sizeof(buffer_telemetria),
+             "AccX:%.2f,AccY:%.2f,AccZ:%.2f,"
+             "Roll_acc:%.2f,Roll_gyr:%.2f,Roll_Kalman:%.2f,"
+             "Pitch_acc:%.2f,Pitch_gyr:%.2f,Pitch_Kalman:%.2f,"
+             "Yaw_gyr:%.2f,Yaw_Kalman:%.2f,"
+             "Alt_ToF_Raw:%.3f,Alt_Kalman:%.3f",
+             AccX, AccY, AccZ,
+             AngleRoll_Acc, RateRoll, x_hat_roll[0],
+             AnglePitch_Acc, RatePitch, x_hat_pitch[0],
+             RateYaw, x_hat_yaw[0],
+             dist_tof_m, x_hat_alt[0]);
 
-    // Actitud YAW
-    //Serial.print("Yaw_gyr:"); Serial.print(RateYaw); Serial.print(",");
-    Serial.print("Yaw_Kalman:"); Serial.print(x_hat_yaw[0]); Serial.print(","); 
+    // 3. Enviar el paquete completo por UDP Broadcast(Convertimos el char array a String)
+    enviarMensajeUDP(String(buffer_telemetria));
 
-    // Altitud
-    //Serial.print("Alt_ToF_Raw:"); Serial.print(dist_tof_m); Serial.print(","); 
-    Serial.print("Alt_Kalman:"); Serial.print(x_hat_alt[0]);
+    // (Opcional) Lo seguimos imprimiendo por Serial también. 
+    // No cuesta nada y te sirve por si querés depurar algo con el cable enchufado.
+    Serial.println(buffer_telemetria);
 
-    Serial.println(); 
-
-    // Relajamos la tarea para no saturar el bus UART. 
-    // 20 ms = 50 Hz de tasa de refresco para el plotter (Súper fluido para el ojo humano)
+    // 4. Relajamos la tarea para no saturar el Wi-Fi ni el procesador.
+    // 20 ms = 50 Hz de tasa de refresco.
     vTaskDelay(pdMS_TO_TICKS(20)); 
   }
 }
