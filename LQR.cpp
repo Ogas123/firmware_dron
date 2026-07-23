@@ -17,7 +17,7 @@ float u_roll = 0, u_pitch = 0, u_yaw = 0, u_alt = 0;
 float DesiredAngleRoll  = 0.0f;
 float DesiredAnglePitch = 0.0f;
 float DesiredRateYaw    = 0.0f;
-//float DesiredAltitude   = 1.0f; // Asegurar consistencia de unidades (ej. metros) con el modelo Python
+//float DesiredAltitude   = 1.0f;
 
 
 void initControl() {

@@ -74,15 +74,15 @@ constexpr float P0_1x1 = 10.0f;
 // ==========================================================
 // PARÁMETROS CALIBRADOS LEVENBERG-MARQUARDT
 // ==========================================================
-#define ALFA_YX    0.0
-#define ALFA_ZX    0.0
-#define ALFA_ZY    0.0
-#define S_X        1.0
-#define S_Y        1.0
-#define S_Z        1.0
-#define B_X        0.0 // Acá estaba tu error de 0.3g
-#define B_Y        0.0
-#define B_Z        0.0
+#define ALFA_YX    0.000278
+#define ALFA_ZX    0.001603
+#define ALFA_ZY    0.000864
+#define S_X        1.005936
+#define S_Y        0.997343
+#define S_Z        0.991658
+#define B_X        0.313151
+#define B_Y        0.016393
+#define B_Z        0.223452
 // ==========================================================
 
 

@@ -8,6 +8,7 @@ float RateRoll, RatePitch, RateYaw;
 float AccX, AccY, AccZ;
 
 float offsetRoll = 0, offsetPitch = 0, offsetYaw = 0;
+float offset_gravedad_ms2 = 9.80665f; 
 
 // Variables para los ángulos brutos del acelerómetro
 float AngleRoll_Acc, AnglePitch_Acc;
@@ -31,7 +32,7 @@ void initIMU() {
   Wire.write(0x1A); // Registro CONFIG
   Wire.write(0x02); // Filtro a ~98 Hz (retraso de 2.8 ms)
   Wire.endTransmission();
-
+  
   // 4. Configurar la escala del Giroscopio
   Wire.beginTransmission(0x68);
   Wire.write(0x1B); // Registro GYRO_CONFIG
@@ -42,12 +43,13 @@ void initIMU() {
   Wire.beginTransmission(0x68);
   Wire.write(0x1C); // Registro ACCEL_CONFIG
   Wire.write(0x10); // Escala a ±8g
+
   Wire.endTransmission();
 
   // ----------------------------------------------------
   // 6. CALIBRACION Offset del Giroscopio
   // ----------------------------------------------------
-  // Tomo las primeras 2000 muestras y las promedio 
+  // Tomo las primeras 2000 muestras y las promedio
   Serial.println("Calibrando giroscopio... NO MOVER");
   
   float sumRoll = 0, sumPitch = 0, sumYaw = 0;
@@ -61,9 +63,8 @@ void initIMU() {
   offsetRoll = sumRoll / 2000.0;
   offsetPitch = sumPitch / 2000.0;
   offsetYaw = sumYaw / 2000.0;
-  //offsets calculados
-  digitalWrite(PIN_LED_BLUE, HIGH); // Dejamos el LED prendido fijo: "¡Listo para volar!"
 
+  digitalWrite(PIN_LED_BLUE, HIGH); 
   Serial.println("Calibración completada!");
 }
 
@@ -82,6 +83,7 @@ void leerIMU() {
   int16_t GyroY = Wire.read() << 8 | Wire.read();
   int16_t GyroZ = Wire.read() << 8 | Wire.read();
 
+  // El giroscopio crudo: (Cuidado con los ejes rotados físicamente aquí también si es necesario)
   RatePitch = (float)GyroX / 65.5;
   RateRoll = (float)GyroY / 65.5;
   RateYaw = (float)GyroZ / 65.5;
@@ -102,10 +104,11 @@ void leerIMU() {
   int16_t AccYLSB = Wire.read() << 8 | Wire.read();
   int16_t AccZLSB = Wire.read() << 8 | Wire.read();
 
-  // 1. Lectura en m/s^2
-  float AccX_crudo = ((float)AccXLSB / 4096.0) * 9.80665;
-  float AccY_crudo = ((float)AccYLSB / 4096.0) * 9.80665;
-  float AccZ_crudo = ((float)AccZLSB / 4096.0) * 9.80665;
+  // 1. Lectura en m/s^2 (Escala ±8g -> 4096 LSB/g)
+  float g_real = 9.80665f;
+  float AccX_crudo = ((float)AccXLSB / 4096.0) * g_real;
+  float AccY_crudo = ((float)AccYLSB / 4096.0) * g_real;
+  float AccZ_crudo = ((float)AccZLSB / 4096.0) * g_real;
 
   // 2. Restar el Offset (Vector 'b')
   float a_x_1 = AccX_crudo - B_X;
@@ -117,13 +120,19 @@ void leerIMU() {
   float a_y_2 = a_y_1 * S_Y;
   float a_z_2 = a_z_1 * S_Z;
 
-  // 4. Multiplicar por matriz de Misalignment (Matriz 'T')
-  // Esto sobrescribe las variables globales AccX, AccY, AccZ que usará tu Kalman
-  AccX = a_x_2;
-  AccY = (ALFA_YX * a_x_2) + a_y_2;
-  AccZ = (ALFA_ZX * a_x_2) + (ALFA_ZY * a_y_2) + a_z_2;
+  // 4. Multiplicar por matriz de Misalignment (Matriz T^a)
+  float AccX_cal = a_x_2 - (ALFA_YX * a_y_2) + (ALFA_ZX * a_z_2);
+  float AccY_cal = a_y_2 - (ALFA_ZY * a_z_2);
+  float AccZ_cal = a_z_2;
 
-  // 5. Cálculo de ángulos para Kalman
-  AnglePitch_Acc = atan2(AccY, sqrt(AccX*AccX + AccZ*AccZ)) * RAD_TO_DEG;
-  AngleRoll_Acc = -atan2(AccX, sqrt(AccY*AccY + AccZ*AccZ)) * RAD_TO_DEG;
+  // 5. MAPEO FÍSICO DE EJES (IMU Rotada 90 grados)
+  // Como la IMU está rotada, el sensor X ahora apunta a un ala (Y del dron)
+  // Y el sensor Y apunta a la nariz (X del dron).
+  AccX = AccY_cal; 
+  AccY = -AccX_cal; // El negativo depende de si rotaste horario o antihorario
+  AccZ = AccZ_cal;
+
+  // 6. Cálculo de ángulos para Kalman (Ejes corregidos a estándar Aeronáutico)
+  AngleRoll_Acc = atan2(AccY, sqrt(AccX*AccX + AccZ*AccZ)) * RAD_TO_DEG;
+  AnglePitch_Acc = -atan2(AccX, sqrt(AccY*AccY + AccZ*AccZ)) * RAD_TO_DEG;
 }
