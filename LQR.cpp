@@ -1,5 +1,6 @@
 #include <Arduino.h>
 #include "LQR.h" 
+#include "Config.h"
 
 // --- IMPORTACIÓN DE VARIABLES GLOBALES EXTERNAS ---
 extern float x_hat_roll[2];
@@ -18,14 +19,6 @@ float DesiredAnglePitch = 0.0f;
 float DesiredRateYaw    = 0.0f;
 float DesiredAltitude   = 1.0f; // Asegurar consistencia de unidades (ej. metros) con el modelo Python
 
-// ====================================================================
-// GANANCIAS LQR ÓPTIMAS (Calculadas en Python)
-// Reemplazar con las salidas reales de la consola de tu Notebook
-// ====================================================================
-const float L_roll[2]  = {14.09f, 15.38f}; 
-const float L_pitch[2] = {14.09f, 15.38f}; 
-const float L_yaw[1]   = {3.16f};          
-const float L_alt[2]   = {15.49f, 5.01f};  
 
 void initControl() {
   u_roll = 0; u_pitch = 0; u_yaw = 0; u_alt = 0;

@@ -3,6 +3,73 @@
 
 #include <Arduino.h>
 
+// ====================================================================
+// ====================================================================
+// PARÁMETROS MATEMÁTICOS: LQG (LQR + KALMAN)
+// ====================================================================
+// ====================================================================
+
+// --- Parámetros de Tiempo ---
+constexpr float h = 0.004f; // 250 Hz (4 ms)
+
+// ==========================================================
+// 1. MATRICES DE ESTIMACIÓN (FILTRO DE KALMAN - LQE)
+// ==========================================================
+
+// Matriz de Transición de Estados (Phi) - Cinemática 2x2 para Roll, Pitch y Altura
+constexpr float Phi_2x2[2][2] = {
+    {1.0f, h}, 
+    {0.0f, 1.0f}
+};
+
+// Matrices de Entrada Estocástica (Gamma)
+// NOTA: Reemplazar los valores de Roll y Pitch con la salida Gamma de tu script de Python
+constexpr float Gamma_roll_pitch[2] = {0.0f, 0.012f}; 
+constexpr float Gamma_yaw = h;
+
+// Matrices de Covarianza de Ruido de Proceso (Q)
+constexpr float Q_roll_pitch[2][2] = {
+    {0.001f, 0.0f}, 
+    {0.0f, 0.01f}
+};
+constexpr float Q_yaw = 0.01f;
+constexpr float Q_alt[2][2] = {
+    {0.0001f, 0.0f}, 
+    {0.0f, 0.001f}
+};
+
+// Matrices de Covarianza de Ruido de Medición (R)
+constexpr float R_roll_pitch[2][2] = {
+    {0.05f, 0.0f}, 
+    {0.0f, 0.002f}
+};
+constexpr float R_yaw = 0.002f;
+constexpr float R_alt_scalar = 0.005f; // Ruido del sensor láser ToF VL53L1X
+
+// ==========================================================
+// 2. MATRICES DE CONTROL ÓPTIMO (LQR)
+// ==========================================================
+
+// Ganancias de realimentación (L) precalculadas en estado estacionario (Python)
+// u(k) = -L * x_hat(k)
+constexpr float L_roll[2]  = {14.09f, 15.38f};
+constexpr float L_pitch[2] = {14.09f, 15.38f};
+constexpr float L_yaw[1]   = {3.16f};
+constexpr float L_alt[2]   = {15.49f, 5.01f};
+
+// ==========================================================
+// 3. MATRICES INICIALES DE INCERTIDUMBRE (P0)
+// ==========================================================
+// Se inician con valores altos para que el filtro confíe en las mediciones
+// durante los primeros milisegundos de arranque.
+constexpr float P0_2x2[2][2] = {
+    {10.0f, 0.0f}, 
+    {0.0f, 10.0f}
+};
+constexpr float P0_1x1 = 10.0f;
+
+
+
 // ==========================================================
 // PARÁMETROS CALIBRADOS LEVENBERG-MARQUARDT
 // ==========================================================
@@ -16,6 +83,8 @@
 #define B_Y        0.030755
 #define B_Z        0.188368
 // ==========================================================
+
+
 
 // ==========================================
 // CONFIGURACIÓN DE HARDWARE 
@@ -40,6 +109,13 @@
 #define PIN_BUZZER_PLUS  39
 #define PIN_BUZZER_MINUS 38
 
+// --- ADC Batería y LEDs ---
+#define PIN_BATERIA   2
+
+#define PIN_LED_GREEN 9
+#define PIN_LED_RED   8
+#define PIN_LED_BLUE  7
+
 // ====================================================================
 // DISPOSICIÓN FÍSICA DE LOS MOTORES (Configuración en 'X')
 // ====================================================================
@@ -53,12 +129,7 @@
 #define PIN_MOTOR_3 3
 #define PIN_MOTOR_4 4
 
-// --- ADC Batería y LEDs ---
-#define PIN_BATERIA   2
 
-#define PIN_LED_GREEN 9
-#define PIN_LED_RED   8
-#define PIN_LED_BLUE  7
 
 // ==========================================
 // RED Y COMUNICACIONES
@@ -72,10 +143,5 @@
 const IPAddress DRON_IP(192, 168, 4, 1);
 const IPAddress DRON_GATEWAY(192, 168, 4, 1);
 const IPAddress DRON_SUBNET(255, 255, 255, 0);
-
-// ==========================================
-// PARÁMETROS DE VUELO Y SEGURIDAD
-// ==========================================
-#define BATERIA_CRITICA 3.3
 
 #endif
