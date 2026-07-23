@@ -18,33 +18,36 @@ constexpr float h = 0.004f; // 250 Hz (4 ms)
 
 // Matriz de Transición de Estados (Phi) - Cinemática 2x2 para Roll, Pitch y Altura
 constexpr float Phi_2x2[2][2] = {
-    {1.0f, h}, 
-    {0.0f, 1.0f}
+    {1.0000f, h}, 
+    {0.0000f, 1.0000f}
 };
 
 // Matrices de Entrada Estocástica (Gamma)
-// NOTA: Reemplazar los valores de Roll y Pitch con la salida Gamma de tu script de Python
-constexpr float Gamma_roll_pitch[2] = {0.0f, 0.012f}; 
-constexpr float Gamma_yaw = h;
+constexpr float Gamma_roll_pitch[2] = {0.000001f, 0.000736f}; 
+constexpr float Gamma_yaw = 0.000007f;
+constexpr float Gamma_alt_lqr[2] = {0.000131f, 0.065574f};
+constexpr float Gamma_alt_kf[2] = {0.000008f, 0.004000f};
 
 // Matrices de Covarianza de Ruido de Proceso (Q)
 constexpr float Q_roll_pitch[2][2] = {
-    {0.001f, 0.0f}, 
-    {0.0f, 0.01f}
+    {0.0100f, 0.0000f}, 
+    {0.0000f, 0.0500f}
 };
-constexpr float Q_yaw = 0.01f;
+constexpr float Q_yaw = 0.0200f;
 constexpr float Q_alt[2][2] = {
-    {0.0001f, 0.0f}, 
-    {0.0f, 0.001f}
+    {0.0010f, 0.0000f}, 
+    {0.0000f, 0.0100f}
 };
 
 // Matrices de Covarianza de Ruido de Medición (R)
 constexpr float R_roll_pitch[2][2] = {
-    {0.05f, 0.0f}, 
-    {0.0f, 0.002f}
+    {0.0200f, 0.0000f}, 
+    {0.0000f, 0.0010f}
 };
-constexpr float R_yaw = 0.002f;
-constexpr float R_alt_scalar = 0.005f; // Ruido del sensor láser ToF VL53L1X
+constexpr float R_yaw = 0.0010f;
+constexpr float R_alt_scalar = 0.0050f; // Ruido del sensor láser ToF VL53L1X
+
+
 
 // ==========================================================
 // 2. MATRICES DE CONTROL ÓPTIMO (LQR)
@@ -52,16 +55,14 @@ constexpr float R_alt_scalar = 0.005f; // Ruido del sensor láser ToF VL53L1X
 
 // Ganancias de realimentación (L) precalculadas en estado estacionario (Python)
 // u(k) = -L * x_hat(k)
-constexpr float L_roll[2]  = {14.09f, 15.38f};
-constexpr float L_pitch[2] = {14.09f, 15.38f};
-constexpr float L_yaw[1]   = {3.16f};
-constexpr float L_alt[2]   = {15.49f, 5.01f};
+constexpr float L_roll[2]  = {155.55f, 43.97f};
+constexpr float L_pitch[2] = {155.55f, 43.97f};
+constexpr float L_yaw[1]   = {22.36f};
+constexpr float L_alt[2]   = {40.03f, 9.22f};
 
 // ==========================================================
 // 3. MATRICES INICIALES DE INCERTIDUMBRE (P0)
 // ==========================================================
-// Se inician con valores altos para que el filtro confíe en las mediciones
-// durante los primeros milisegundos de arranque.
 constexpr float P0_2x2[2][2] = {
     {10.0f, 0.0f}, 
     {0.0f, 10.0f}

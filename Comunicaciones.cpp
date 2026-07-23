@@ -6,6 +6,9 @@
 
 WiFiUDP udp;
 
+// Instanciamos la variable de estado inicializándola en APAGADO
+EstadoDron estadoActual = APAGADO;
+
 void initComunicaciones() {
   // 1. Configurar ESP32 como Access Point
   Serial.println("\nIniciando red Wi-Fi SoftAP...");

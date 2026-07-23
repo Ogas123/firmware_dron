@@ -5,6 +5,7 @@
 #include "Kalman.h"
 #include "LQR.h"
 #include "Motores.h"
+#include "Comunicaciones.h"
 
 // ==========================================================
 // VARIABLES GLOBALES Y SEMÁFOROS
@@ -51,6 +52,7 @@ void setup() {
   initToF();
   initControl();
   initMotores();
+  initComunicaciones();
 
   // 2. Crear Tarea de Telemetría anclada al Core 0
   xTaskCreatePinnedToCore(
@@ -100,11 +102,24 @@ void loop() {
                          y_roll, y_pitch, y_yaw, 
                          dist_tof_m, AccZ);
 
-    // 3. Ley de Control (LQR)
-    //calcularControl();
-
-    // 4. Actuación (Mezclador a MOSFETs)
-    //actualizarMotores(true, 0, u_roll, u_pitch, u_yaw);
+    // 3. MÁQUINA DE ESTADOS
+    if (estadoActual == VOLANDO) {
+      // Dron Armado: Calculamos la ley de control óptimo
+      calcularControl();
+      
+      // Enviamos señales PWM a los ESCs
+      // actualizarMotores(true, 1500, u_roll, u_pitch, u_yaw); 
+    } 
+    else {
+      // Dron Apagado o en Pánico: Forzamos control a cero
+      u_roll = 0.0f;
+      u_pitch = 0.0f;
+      u_yaw = 0.0f;
+      u_alt = 0.0f;
+      
+      // Apagado seguro de los motores
+      actualizarMotores(false, 0, 0, 0, 0);
+    }
   }
 }
 
