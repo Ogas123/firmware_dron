@@ -29,11 +29,11 @@ void actualizarMotores(bool armado, int throttleBase, float controlRoll, float c
     return; 
   }
 
-  // 1. EL MIXER
-  int pwmMotor1 = throttleBase + controlRoll - controlPitch - controlYaw;
-  int pwmMotor2 = throttleBase + controlRoll + controlPitch + controlYaw;
-  int pwmMotor3 = throttleBase - controlRoll + controlPitch - controlYaw;
-  int pwmMotor4 = throttleBase - controlRoll - controlPitch + controlYaw;
+  // 1. EL MIXER CON COMPENSACIÓN INDIVIDUAL DE MOTORES
+  int pwmMotor1 = throttleBase + controlRoll - controlPitch - controlYaw + OFFSET_MOTOR_1;
+  int pwmMotor2 = throttleBase + controlRoll + controlPitch + controlYaw + OFFSET_MOTOR_2;
+  int pwmMotor3 = throttleBase - controlRoll + controlPitch - controlYaw + OFFSET_MOTOR_3;
+  int pwmMotor4 = throttleBase - controlRoll - controlPitch + controlYaw + OFFSET_MOTOR_4;
 
   // SEGURIDAD 2: Saturación (Clamping) para no desbordar los 12 bits (0 a 4095)
   if(pwmMotor1 > 4095) pwmMotor1 = 4095;

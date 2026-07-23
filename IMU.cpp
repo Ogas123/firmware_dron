@@ -68,8 +68,6 @@ void initIMU() {
   Serial.println("Calibración completada!");
 }
 
-
-
 void leerIMU() {
   // ---------------------------------
   // --- GIROSCOPIO ---
@@ -83,14 +81,13 @@ void leerIMU() {
   int16_t GyroY = Wire.read() << 8 | Wire.read();
   int16_t GyroZ = Wire.read() << 8 | Wire.read();
 
-  // El giroscopio crudo: (Cuidado con los ejes rotados físicamente aquí también si es necesario)
-  RatePitch = (float)GyroX / 65.5;
-  RateRoll = (float)GyroY / 65.5;
-  RateYaw = (float)GyroZ / 65.5;
+  RatePitch = (float)GyroX / 65.5f;
+  RateRoll  = (float)GyroY / 65.5f;
+  RateYaw   = (float)GyroZ / 65.5f;
 
   RatePitch -= offsetPitch;
-  RateRoll -= offsetRoll;
-  RateYaw -= offsetYaw;
+  RateRoll  -= offsetRoll;
+  RateYaw   -= offsetYaw;
 
   // ---------------------------------
   // --- ACELERÓMETRO ---
@@ -104,13 +101,13 @@ void leerIMU() {
   int16_t AccYLSB = Wire.read() << 8 | Wire.read();
   int16_t AccZLSB = Wire.read() << 8 | Wire.read();
 
-  // 1. Lectura en m/s^2 (Escala ±8g -> 4096 LSB/g)
+  // 1. Lectura directa en m/s^2
   float g_real = 9.80665f;
-  float AccX_crudo = ((float)AccXLSB / 4096.0) * g_real;
-  float AccY_crudo = ((float)AccYLSB / 4096.0) * g_real;
-  float AccZ_crudo = ((float)AccZLSB / 4096.0) * g_real;
+  float AccX_crudo = ((float)AccXLSB / 4096.0f) * g_real;
+  float AccY_crudo = ((float)AccYLSB / 4096.0f) * g_real;
+  float AccZ_crudo = ((float)AccZLSB / 4096.0f) * g_real;
 
-  // 2. Restar el Offset (Vector 'b')
+  // 2. Restar el Offset (Vector 'b' calculado por tu Python)
   float a_x_1 = AccX_crudo - B_X;
   float a_y_1 = AccY_crudo - B_Y;
   float a_z_1 = AccZ_crudo - B_Z;
@@ -120,19 +117,12 @@ void leerIMU() {
   float a_y_2 = a_y_1 * S_Y;
   float a_z_2 = a_z_1 * S_Z;
 
-  // 4. Multiplicar por matriz de Misalignment (Matriz T^a)
-  float AccX_cal = a_x_2 - (ALFA_YX * a_y_2) + (ALFA_ZX * a_z_2);
-  float AccY_cal = a_y_2 - (ALFA_ZY * a_z_2);
-  float AccZ_cal = a_z_2;
+  // 4. Multiplicar por la matriz de Desalineación (Tu modelo exacto)
+  AccX = a_x_2;
+  AccY = (ALFA_YX * a_x_2) + a_y_2;
+  AccZ = (ALFA_ZX * a_x_2) + (ALFA_ZY * a_y_2) + a_z_2;
 
-  // 5. MAPEO FÍSICO DE EJES (IMU Rotada 90 grados)
-  // Como la IMU está rotada, el sensor X ahora apunta a un ala (Y del dron)
-  // Y el sensor Y apunta a la nariz (X del dron).
-  AccX = AccY_cal; 
-  AccY = -AccX_cal; // El negativo depende de si rotaste horario o antihorario
-  AccZ = AccZ_cal;
-
-  // 6. Cálculo de ángulos para Kalman (Ejes corregidos a estándar Aeronáutico)
-  AngleRoll_Acc = atan2(AccY, sqrt(AccX*AccX + AccZ*AccZ)) * RAD_TO_DEG;
-  AnglePitch_Acc = -atan2(AccX, sqrt(AccY*AccY + AccZ*AccZ)) * RAD_TO_DEG;
+  // 5. Cálculo de ángulos (Tus fórmulas originales)
+  AnglePitch_Acc = atan2(AccY, sqrt(AccX*AccX + AccZ*AccZ)) * RAD_TO_DEG;
+  AngleRoll_Acc  = -atan2(AccX, sqrt(AccY*AccY + AccZ*AccZ)) * RAD_TO_DEG;
 }

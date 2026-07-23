@@ -107,8 +107,9 @@ void loop() {
       // Dron Armado: Calculamos la ley de control óptimo
       calcularControl();
       
-      // Enviamos señales PWM a los ESCs
-      actualizarMotores(true, 0, u_roll, u_pitch, u_yaw); 
+      // Enviamos señales PWM a los MOSFETs (throttleBase + u_alt)
+      int throttleDinamico = 1750 + (int)u_alt;
+      actualizarMotores(true, throttleDinamico, u_roll, u_pitch, u_yaw); 
     } 
     else {
       // Dron Apagado o en Pánico: Forzamos control a cero
@@ -140,12 +141,12 @@ void tareaTelemetria(void *pvParameters) {
     //Serial.print("AccZ:"); Serial.print(AccZ); Serial.print(",");
 
     // Actitud ROLL (Acelerómetro vs Giroscopio vs Estimación Óptima)
-    Serial.print("Roll_acc:"); Serial.print(AngleRoll_Acc); Serial.print(",");
+    //Serial.print("Roll_acc:"); Serial.print(AngleRoll_Acc); Serial.print(",");
     //Serial.print("Roll_gyr:"); Serial.print(RateRoll); Serial.print(",");
     //Serial.print("Roll_Kalman:"); Serial.print(x_hat_roll[0]); Serial.print(",");
 
     // Actitud PITCH
-    Serial.print("Pitch_acc:"); Serial.print(AnglePitch_Acc); Serial.print(",");
+    //Serial.print("Pitch_acc:"); Serial.print(AnglePitch_Acc); Serial.print(",");
     //Serial.print("Pitch_gyr:"); Serial.print(RatePitch); Serial.print(",");
     //Serial.print("Pitch_Kalman:"); Serial.print(x_hat_pitch[0]); Serial.print(",");
 
@@ -157,7 +158,7 @@ void tareaTelemetria(void *pvParameters) {
     //Serial.print("Alt_ToF_Raw:"); Serial.print(dist_tof_m); Serial.print(",");
     //Serial.print("Alt_Kalman:"); Serial.print(x_hat_alt[0]);
 
-    Serial.println();
+    //Serial.println();
 
 
     // Empaquetamos agrupando por Canal y sumando el Giroscopio en Roll y Pitch
@@ -199,7 +200,7 @@ void tareaTelemetria(void *pvParameters) {
              );
 
     // 3. Enviar el paquete completo por UDP Broadcast(Convertimos el char array a String)
-    //enviarMensajeUDP(String(buffer_telemetria));
+    enviarMensajeUDP(String(buffer_telemetria));
     //enviarMensajeUDP(String(AccX) + "," + String(AccY) + "," + String(AccZ));
     
     // 4. Relajamos la tarea para no saturar el Wi-Fi ni el procesador.

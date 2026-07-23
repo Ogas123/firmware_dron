@@ -17,8 +17,7 @@ float u_roll = 0, u_pitch = 0, u_yaw = 0, u_alt = 0;
 float DesiredAngleRoll  = 0.0f;
 float DesiredAnglePitch = 0.0f;
 float DesiredRateYaw    = 0.0f;
-//float DesiredAltitude   = 1.0f;
-
+float DesiredAltitude   = 0.5f;
 
 void initControl() {
   u_roll = 0; u_pitch = 0; u_yaw = 0; u_alt = 0;
@@ -31,8 +30,6 @@ void initControl() {
 void calcularControl() {
   
   // 1. Canal Roll (Actitud)
-  // El error se forma restando el setpoint al estado actual estimado.
-  // El setpoint de la velocidad angular (índice 1) es siempre 0 en hovering.
   float err_roll_0 = x_hat_roll[0] - DesiredAngleRoll;
   float err_roll_1 = x_hat_roll[1] - 0.0f; 
   u_roll = -(L_roll[0] * err_roll_0 + L_roll[1] * err_roll_1);
@@ -47,9 +44,11 @@ void calcularControl() {
   u_yaw = -(L_yaw[0] * err_yaw_0);
 
   // 4. Canal Altitud (Posición Vertical Z)
-  //float err_alt_0 = x_hat_alt[0] - DesiredAltitude;
-  //float err_alt_1 = x_hat_alt[1] - 0.0f; // Queremos velocidad vertical 0 al llegar a la meta
-  //u_alt = -(L_alt[0] * err_alt_0 + L_alt[1] * err_alt_1);
+  float err_alt_0 = x_hat_alt[0] - DesiredAltitude;
+  float err_alt_1 = x_hat_alt[1] - 0.0f; // Queremos velocidad vertical 0 al llegar a la meta
+  u_alt = -(L_alt[0] * err_alt_0 + L_alt[1] * err_alt_1);
   
-  // Nota: Estas salidas u_* se sumarán luego al Throttle Base (HoverThrottle) dentro de tu función del Mixer de motores.
+  // Clamping de seguridad para la salida de control de altura
+  if (u_alt > 500.0f)  u_alt = 500.0f;
+  if (u_alt < -500.0f) u_alt = -500.0f;
 }
