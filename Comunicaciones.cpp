@@ -46,10 +46,9 @@ void initComunicaciones() {
   Serial.println("Escuchando por UDP en el puerto " + String(UDP_PORT));
 }
 
-void enviarMensajeUDP(const char* mensaje) {
-  // Enviamos el texto a la dirección de Broadcast
+void enviarTelemetriaBinaria(const uint8_t* datos, size_t longitud) {
   udp.beginPacket("255.255.255.255", UDP_PORT);
-  udp.println(mensaje); // Manda el array de caracteres directo y agrega el salto de línea
+  udp.write(datos, longitud);
   udp.endPacket();
 }
 
@@ -92,8 +91,7 @@ void recibirComandosUDP() {
 // TAREA DE TELEMETRÍA (CORE 0) - ASÍNCRONA
 // ==========================================================
 void tareaTelemetria(void *pvParameters) {
-  // Creamos un buffer en memoria estática lo suficientemente grande para alojar todo el texto de la telemetría (256 o 512 bytes).
-  char buffer_telemetria[512];
+  TelemetriaDron paquete; // Creamos el objeto del paquete
 
   for(;;) {
     // 1. Revisar si llegó un comando de armado/desarmado (UDP RX)
@@ -124,50 +122,34 @@ void tareaTelemetria(void *pvParameters) {
 
     //Serial.println();
 
-
-    // Empaquetamos agrupando por Canal y sumando el Giroscopio en Roll y Pitch
-    snprintf(buffer_telemetria, sizeof(buffer_telemetria),
-             
-             // --- 0. Sensores Crudos (Para calibrar LM) ---
-             "AccX:%.4f,AccY:%.4f,AccZ:%.4f,"
-             
-             // --- 1. Canal Roll ---
-             "Roll_Acc:%.2f,Roll_Gyr:%.2f,Roll_Kalman:%.2f,RollRate_Kalman:%.2f,"
-             
-             // --- 2. Canal Pitch ---
-             "Pitch_Acc:%.2f,Pitch_Gyr:%.2f,Pitch_Kalman:%.2f,PitchRate_Kalman:%.2f,"
-             
-             // --- 3. Canal Yaw ---
-             "YawRate_Gyr:%.2f,YawRate_Kalman:%.2f,"
-             
-             // --- 4. Canal Altura ---
-             "Alt_ToF:%.3f,Alt_Kalman:%.3f,Vz_Kalman:%.3f",
-             
-             // ==========================================
-             // VARIABLES MAPEADAS AL TEXTO SUPERIOR
-             // ==========================================
-             
-             // 0. Crudos
-             AccX, AccY, AccZ,
-             
-             // 1. Roll: Acelerómetro vs Giroscopio vs Posición (0) vs Velocidad (1)
-             AngleRoll_Acc, RateRoll, x_hat_roll[0], x_hat_roll[1],
-             
-             // 2. Pitch: Acelerómetro vs Giroscopio vs Posición (0) vs Velocidad (1)
-             AnglePitch_Acc, RatePitch, x_hat_pitch[0], x_hat_pitch[1],
-             
-             // 3. Yaw: Giroscopio vs Velocidad (0)
-             RateYaw, x_hat_yaw[0],
-             
-             // 4. Altura: Medición ToF vs Posición (0) vs Velocidad (1)
-             dist_tof_m, x_hat_alt[0], x_hat_alt[1]
-             );
-
-    // 3. Enviar el paquete completo por UDP Broadcast(Convertimos el char array a String)
-    enviarMensajeUDP(buffer_telemetria);
-    //enviarMensajeUDP(String(AccX) + "," + String(AccY) + "," + String(AccZ));
+    // 1. Llenar la estructura con los datos actuales
+    paquete.timestamp = micros();
     
-    // 4. Relajamos la tarea para no saturar el Wi-Fi ni el procesador.
+    paquete.accX = AccX; 
+    paquete.accY = AccY; 
+    paquete.accZ = AccZ;
+
+    paquete.rollAcc = AngleRoll_Acc; 
+    paquete.rollGyr = RateRoll; 
+    paquete.rollKalman = x_hat_roll[0]; 
+    paquete.rollRateKalman = x_hat_roll[1];
+
+    paquete.pitchAcc = AnglePitch_Acc; 
+    paquete.pitchGyr = RatePitch; 
+    paquete.pitchKalman = x_hat_pitch[0]; 
+    paquete.pitchRateKalman = x_hat_pitch[1];
+
+    paquete.yawRateGyr = RateYaw; 
+    paquete.yawRateKalman = x_hat_yaw[0];
+
+    paquete.altToF = dist_tof_m; 
+    paquete.altKalman = x_hat_alt[0]; 
+    paquete.vzKalman = x_hat_alt[1];
+
+    // 2. Enviar el paquete casteando el struct a puntero de bytes
+    enviarTelemetriaBinaria((const uint8_t*)&paquete, sizeof(TelemetriaDron));
+    
+    // 3. Relajamos la tarea para no saturar el Wi-Fi ni el procesador.
     // 20 ms = 50 Hz de tasa de refresco.
     vTaskDelay(pdMS_TO_TICKS(20)); 
   }
