@@ -69,21 +69,25 @@ void initIMU() {
 }
 
 void leerIMU() {
+  Wire.beginTransmission(0x68);
+  Wire.write(0x3B); // Registro inicial ACCEL_XOUT_H
+  Wire.endTransmission(false); 
+  Wire.requestFrom(0x68, 14); // Pide los 14 bytes de corrido
+
+  int16_t AccXLSB  = Wire.read() << 8 | Wire.read();
+  int16_t AccYLSB  = Wire.read() << 8 | Wire.read();
+  int16_t AccZLSB  = Wire.read() << 8 | Wire.read();
+  int16_t TempLSB  = Wire.read() << 8 | Wire.read(); // No lo uso
+  int16_t GyroXLSB = Wire.read() << 8 | Wire.read();
+  int16_t GyroYLSB = Wire.read() << 8 | Wire.read();
+  int16_t GyroZLSB = Wire.read() << 8 | Wire.read();
+
   // ---------------------------------
   // --- GIROSCOPIO ---
   // ---------------------------------
-  Wire.beginTransmission(0x68);
-  Wire.write(0x43); 
-  Wire.endTransmission(false); 
-  Wire.requestFrom(0x68, 6); 
-  
-  int16_t GyroX = Wire.read() << 8 | Wire.read();
-  int16_t GyroY = Wire.read() << 8 | Wire.read();
-  int16_t GyroZ = Wire.read() << 8 | Wire.read();
-
-  RatePitch = (float)GyroX / 65.5f;
-  RateRoll  = (float)GyroY / 65.5f;
-  RateYaw   = (float)GyroZ / 65.5f;
+  RatePitch = (float)GyroXLSB / 65.5f;
+  RateRoll  = (float)GyroYLSB / 65.5f;
+  RateYaw   = (float)GyroZLSB / 65.5f;
 
   RatePitch -= offsetPitch;
   RateRoll  -= offsetRoll;
@@ -92,15 +96,6 @@ void leerIMU() {
   // ---------------------------------
   // --- ACELERÓMETRO ---
   // ---------------------------------
-  Wire.beginTransmission(0x68);
-  Wire.write(0x3B); 
-  Wire.endTransmission(); 
-  Wire.requestFrom(0x68, 6); 
-  
-  int16_t AccXLSB = Wire.read() << 8 | Wire.read();
-  int16_t AccYLSB = Wire.read() << 8 | Wire.read();
-  int16_t AccZLSB = Wire.read() << 8 | Wire.read();
-
   // 1. Lectura directa en m/s^2
   float g_real = 9.80665f;
   float AccX_crudo = ((float)AccXLSB / 4096.0f) * g_real;

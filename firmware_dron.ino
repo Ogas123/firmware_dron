@@ -6,35 +6,34 @@
 #include "LQR.h"
 #include "Motores.h"
 #include "Comunicaciones.h"
+#include "Supervisor.h"
 
 // ==========================================================
-// VARIABLES GLOBALES
+// VARIABLES GLOBALES DE RTOS Y HARDWARE TIMER
 // ==========================================================
+// Puntero al temporizador de hardware del ESP32 que dictará el ritmo de 250 Hz
 hw_timer_t * controlTimer = NULL;
+// Semáforo binario para sincronizar la Interrupción (ISR) con el Loop principal
 SemaphoreHandle_t timerSemaphore;
 
-// Importamos las variables crudas de la IMU
+// Importamos sensores para el Lazo de Control (Core 1)
 extern float AccX, AccY, AccZ;
 extern float AngleRoll_Acc, AnglePitch_Acc;
 extern float RateRoll, RatePitch, RateYaw;
-
-// Importamos la lectura del ToF 
 extern float dist_tof_m; 
-
-extern float x_hat_roll[2];
-extern float x_hat_pitch[2];
-extern float x_hat_yaw[1];
-extern float x_hat_alt[2];
-
-// Prototipo de la tarea de telemetría
-void tareaTelemetria(void *pvParameters);
 
 // ==========================================================
 // RUTINA DE INTERRUPCIÓN (ISR) - HARDWARE TIMER (250 Hz)
 // ==========================================================
+// IRAM_ATTR asegura que esta función se cargue en la RAM interna del ESP32 
+// y no en la memoria Flash, garantizando una ejecución ultrarrápida y evitando crashes.
 void IRAM_ATTR onTimer() {
   BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+  
+  // Liberamos (Give) el semáforo para avisarle al 'loop' que ya pasaron los 4ms
   xSemaphoreGiveFromISR(timerSemaphore, &xHigherPriorityTaskWoken);
+  
+  // Si liberar el semáforo despertó una tarea de mayor prioridad, forzamos un cambio de contexto
   if (xHigherPriorityTaskWoken) {
     portYIELD_FROM_ISR(); 
   }
@@ -44,49 +43,52 @@ void IRAM_ATTR onTimer() {
 // SETUP
 // ==========================================================
 void setup() {
-  // Aumentamos los baudios para no saturar el buffer con tanta data
+  // Aumentamos los baudios a 500k para no saturar el buffer serial con la data a alta frecuencia
   Serial.begin(500000); 
 
-  // 1. Inicialización de todos los módulos
+  // 1. Inicialización de todos los periféricos y módulos de software
   initIMU();
   initToF();
   initControl();
   initMotores();
   initComunicaciones();
 
-  // 2. Crear Tarea de Telemetría anclada al Core 0
+  // 2. Creación de la Tarea de Telemetría (Wi-Fi/UDP) en el Core 0
+  // Al aislar la telemetría en el núcleo 0, evitamos que los retardos de red
+  // interfieran con el lazo de control crítico que correrá en el núcleo 1.
   xTaskCreatePinnedToCore(
-    tareaTelemetria,   // Función que ejecuta la tarea
-    "TaskTelemetria",  // Nombre (para debugging interno de FreeRTOS)
-    4096,              // Tamaño del Stack en bytes
-    NULL,              // Parámetros que le pasamos a la función
-    1,                 // Prioridad (1 es baja, el control del dron manda)
-    NULL,              // Handle de la tarea
-    0                  // ¡Núcleo 0! (El Core 1 queda libre para el loop)
+    tareaTelemetria,   // Puntero a la función que ejecuta la tarea
+    "TaskTelemetria",  // Etiqueta de texto para debugging de FreeRTOS
+    4096,              // Tamaño de memoria RAM asignada al Stack (en bytes)
+    NULL,              // Parámetros a pasar a la función (ninguno en este caso)
+    1,                 // Prioridad (1 es baja, el control manda)
+    NULL,              // Handle (puntero) de la tarea, no lo necesitamos
+    0                  // Asignación estricta al Núcleo 0 (Pro CPU)
   );
 
-  // 3. Crear el semáforo y configurar el Timer de Hardware
+  // 3. Configuración del Sincronizador (Semáforo) y Timer de Control
   timerSemaphore = xSemaphoreCreateBinary();
   
-  // Seteamos la frecuencia del timer a 1 MHz (1 tick = 1 microsegundo)
+  // timerBegin: Configuramos la frecuencia base del timer a 1 MHz
+  // Esto significa que 1 "tick" del temporizador equivale exactamente a 1 microsegundo.
   controlTimer = timerBegin(1000000); 
   
-  // Atamos la interrupción (sin el tercer parámetro de edge)
+  // Atamos nuestra función ISR (onTimer) al temporizador de hardware configurado
   timerAttachInterrupt(controlTimer, &onTimer);
   
-  // Nueva API timerAlarm: (timer, valor de alarma, auto-recarga, conteo de recarga)
-  // Alarma a los 4000 us (250 Hz), autoreload true, reload count 0
+  // timerAlarm: Disparamos la alarma cada 4000 ticks (4000 us = 4 ms = 250 Hz)
+  // Parámetros: (timer, valor alarma, auto-reload true, contador de recargas)
   timerAlarm(controlTimer, 4000, true, 0); 
   
   Serial.println("SISTEMA ARMADO. LQG EN CORE 1 (250Hz) / TELEMETRÍA EN CORE 0.");
-  
 }
 
 // ==========================================================
 // LOOP PRINCIPAL (CORE 1) - CONTROL LQG ESTRICTO
 // ==========================================================
 void loop() {
-  // Se bloquea aquí sin gastar CPU hasta que el Timer le da luz verde (cada 4 ms exactos)
+  // El loop se "bloquea" aquí (sin consumir CPU) esperando a que la ISR libere el semáforo.
+  // Esto garantiza que el lazo se ejecute EXACTAMENTE a 250 Hz sin el temblor de la función delay().
   if (xSemaphoreTake(timerSemaphore, portMAX_DELAY) == pdTRUE) {
     
     // 1. Leer Sensores
@@ -102,109 +104,7 @@ void loop() {
                          y_roll, y_pitch, y_yaw, 
                          dist_tof_m, AccZ);
 
-    // 3. MÁQUINA DE ESTADOS
-    if (estadoActual == VOLANDO) {
-      // Dron Armado: Calculamos la ley de control óptimo
-      calcularControl();
-      
-      // Enviamos señales PWM a los MOSFETs (throttleBase + u_alt)
-      int throttleDinamico = 1750 + (int)u_alt;
-      actualizarMotores(true, throttleDinamico, u_roll, u_pitch, u_yaw); 
-    } 
-    else {
-      // Dron Apagado o en Pánico: Forzamos control a cero
-      u_roll = 0.0f;
-      u_pitch = 0.0f;
-      u_yaw = 0.0f;
-      u_alt = 0.0f;
-      
-      // Apagado seguro de los motores
-      actualizarMotores(false, 0, 0, 0, 0);
-    }
-  }
-}
-
-// ==========================================================
-// TAREA DE TELEMETRÍA (CORE 0) - ASÍNCRONA
-// ==========================================================
-void tareaTelemetria(void *pvParameters) {
-  // Creamos un buffer en memoria estática lo suficientemente grande para alojar todo el texto de la telemetría (256 o 512 bytes).
-  char buffer_telemetria[512];
-
-  for(;;) {
-    // 1. Revisar si llegó un comando de armado/desarmado (UDP RX)
-    recibirComandosUDP();
-
-    // Aceleraciones crudas
-    //Serial.print("AccX:"); Serial.print(AccX); Serial.print(",");
-    //Serial.print("AccY:"); Serial.print(AccY); Serial.print(",");
-    //Serial.print("AccZ:"); Serial.print(AccZ); Serial.print(",");
-
-    // Actitud ROLL (Acelerómetro vs Giroscopio vs Estimación Óptima)
-    //Serial.print("Roll_acc:"); Serial.print(AngleRoll_Acc); Serial.print(",");
-    //Serial.print("Roll_gyr:"); Serial.print(RateRoll); Serial.print(",");
-    //Serial.print("Roll_Kalman:"); Serial.print(x_hat_roll[0]); Serial.print(",");
-
-    // Actitud PITCH
-    //Serial.print("Pitch_acc:"); Serial.print(AnglePitch_Acc); Serial.print(",");
-    //Serial.print("Pitch_gyr:"); Serial.print(RatePitch); Serial.print(",");
-    //Serial.print("Pitch_Kalman:"); Serial.print(x_hat_pitch[0]); Serial.print(",");
-
-    // Actitud YAW
-    //Serial.print("Yaw_gyr:"); Serial.print(RateYaw); Serial.print(",");
-    //Serial.print("Yaw_Kalman:"); Serial.print(x_hat_yaw[0]); Serial.print(",");
-
-    // Altitud
-    //Serial.print("Alt_ToF_Raw:"); Serial.print(dist_tof_m); Serial.print(",");
-    //Serial.print("Alt_Kalman:"); Serial.print(x_hat_alt[0]);
-
-    //Serial.println();
-
-
-    // Empaquetamos agrupando por Canal y sumando el Giroscopio en Roll y Pitch
-    snprintf(buffer_telemetria, sizeof(buffer_telemetria),
-             
-             // --- 0. Sensores Crudos (Para calibrar LM) ---
-             "AccX:%.4f,AccY:%.4f,AccZ:%.4f,"
-             
-             // --- 1. Canal Roll ---
-             "Roll_Acc:%.2f,Roll_Gyr:%.2f,Roll_Kalman:%.2f,RollRate_Kalman:%.2f,"
-             
-             // --- 2. Canal Pitch ---
-             "Pitch_Acc:%.2f,Pitch_Gyr:%.2f,Pitch_Kalman:%.2f,PitchRate_Kalman:%.2f,"
-             
-             // --- 3. Canal Yaw ---
-             "YawRate_Gyr:%.2f,YawRate_Kalman:%.2f,"
-             
-             // --- 4. Canal Altura ---
-             "Alt_ToF:%.3f,Alt_Kalman:%.3f,Vz_Kalman:%.3f",
-             
-             // ==========================================
-             // VARIABLES MAPEADAS AL TEXTO SUPERIOR
-             // ==========================================
-             
-             // 0. Crudos
-             AccX, AccY, AccZ,
-             
-             // 1. Roll: Acelerómetro vs Giroscopio vs Posición (0) vs Velocidad (1)
-             AngleRoll_Acc, RateRoll, x_hat_roll[0], x_hat_roll[1],
-             
-             // 2. Pitch: Acelerómetro vs Giroscopio vs Posición (0) vs Velocidad (1)
-             AnglePitch_Acc, RatePitch, x_hat_pitch[0], x_hat_pitch[1],
-             
-             // 3. Yaw: Giroscopio vs Velocidad (0)
-             RateYaw, x_hat_yaw[0],
-             
-             // 4. Altura: Medición ToF vs Posición (0) vs Velocidad (1)
-             dist_tof_m, x_hat_alt[0], x_hat_alt[1]
-             );
-
-    // 3. Enviar el paquete completo por UDP Broadcast(Convertimos el char array a String)
-    enviarMensajeUDP(String(buffer_telemetria));
-    //enviarMensajeUDP(String(AccX) + "," + String(AccY) + "," + String(AccZ));
-    
-    // 4. Relajamos la tarea para no saturar el Wi-Fi ni el procesador.
-    // 20 ms = 50 Hz de tasa de refresco.
-    vTaskDelay(pdMS_TO_TICKS(20)); 
+    // 3. Ejecutar Máquina de Estados (Supervisor)
+    ejecutarSupervisorVuelo();
   }
 }

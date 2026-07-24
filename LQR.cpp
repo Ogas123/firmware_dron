@@ -17,7 +17,7 @@ float u_roll = 0, u_pitch = 0, u_yaw = 0, u_alt = 0;
 float DesiredAngleRoll  = 0.0f;
 float DesiredAnglePitch = 0.0f;
 float DesiredRateYaw    = 0.0f;
-float DesiredAltitude   = 0.5f;
+float DesiredAltitude   = 0.0f;
 
 void initControl() {
   u_roll = 0; u_pitch = 0; u_yaw = 0; u_alt = 0;
