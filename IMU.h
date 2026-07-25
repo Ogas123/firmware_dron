@@ -13,6 +13,7 @@ extern float x_hat_Pitch;
 extern float AngleRoll_Acc;
 extern float AnglePitch_Acc;
 
+extern float Temp;
 
 void initIMU();
 void leerIMU();

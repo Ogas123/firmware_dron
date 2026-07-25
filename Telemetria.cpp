@@ -13,18 +13,24 @@ EstadoDron estadoActual = APAGADO;
 // ==========================================================
 // VARIABLES GLOBALES
 // ==========================================================
-// Importamos las variables crudas de la IMU
+// IMU Cruda
 extern float AccX, AccY, AccZ;
 extern float AngleRoll_Acc, AnglePitch_Acc;
 extern float RateRoll, RatePitch, RateYaw;
 
-// Importamos la lectura del ToF 
+// ToF
 extern float dist_tof_m; 
 
+// Kalman
 extern float x_hat_roll[2];
 extern float x_hat_pitch[2];
 extern float x_hat_yaw[1];
 extern float x_hat_alt[2];
+
+// Batería
+extern float VoltajeBateriaReal;
+// Temperatura
+extern float Temp;
 
 
 void initComunicaciones() {
@@ -148,6 +154,9 @@ void tareaTelemetria(void *pvParameters) {
     paquete.altToF = dist_tof_m; 
     paquete.altKalman = x_hat_alt[0]; 
     paquete.vzKalman = x_hat_alt[1];
+
+    paquete.vBat = VoltajeBateriaReal;
+    paquete.temp = Temp;
 
     // 2. Enviar el paquete casteando el struct a puntero de bytes
     enviarTelemetriaBinaria((const uint8_t*)&paquete, sizeof(TelemetriaDron));

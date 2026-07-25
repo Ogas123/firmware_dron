@@ -13,6 +13,8 @@ float offset_gravedad_ms2 = 9.80665f;
 // Variables para los ángulos brutos del acelerómetro
 float AngleRoll_Acc, AnglePitch_Acc;
 
+float Temp;
+
 void initIMU() {
   // 1. Iniciar bus I2C en los pines D4(SDA) y D5(SCL) del ESP32-S3
   Wire.begin(PIN_IMU_SDA, PIN_IMU_SCL); 
@@ -77,10 +79,13 @@ void leerIMU() {
   int16_t AccXLSB  = Wire.read() << 8 | Wire.read();
   int16_t AccYLSB  = Wire.read() << 8 | Wire.read();
   int16_t AccZLSB  = Wire.read() << 8 | Wire.read();
-  int16_t TempLSB  = Wire.read() << 8 | Wire.read(); // No lo uso
+  int16_t TempLSB  = Wire.read() << 8 | Wire.read();
   int16_t GyroXLSB = Wire.read() << 8 | Wire.read();
   int16_t GyroYLSB = Wire.read() << 8 | Wire.read();
   int16_t GyroZLSB = Wire.read() << 8 | Wire.read();
+
+  // CÁLCULO DE TEMPERATURA
+  Temp = (TempLSB / 340.0f) + 36.53f;
 
   // ---------------------------------
   // --- GIROSCOPIO ---
