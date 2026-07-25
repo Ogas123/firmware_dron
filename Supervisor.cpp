@@ -2,7 +2,7 @@
 #include "Config.h"
 #include "LQR.h"
 #include "Motores.h"
-#include "Comunicaciones.h"
+#include "Telemetria.h"
 
 // Definición de las variables del supervisor
 float AlturaObjetivoFinal = 0.5f;     
