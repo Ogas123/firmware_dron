@@ -19,7 +19,7 @@ void ejecutarSupervisorVuelo() {
   switch (estadoActual) {
       
     case DESPEGANDO:
-      if (baseThrottleDinamico < 1750.0f) {
+      if (baseThrottleDinamico < 1400.0f) {
         baseThrottleDinamico += 2.0f;   
         DesiredAltitude = x_hat_alt[0]; 
       } else {
@@ -37,7 +37,7 @@ void ejecutarSupervisorVuelo() {
     case VOLANDO:
       DesiredAltitude = AlturaObjetivoFinal; 
       calcularControl();
-      actualizarMotores(true, 1750 + (int)u_alt, u_roll, u_pitch, u_yaw);
+      actualizarMotores(true, 1400 + (int)u_alt, u_roll, u_pitch, u_yaw);
       break;
 
     case ATERRIZANDO:
@@ -47,7 +47,7 @@ void ejecutarSupervisorVuelo() {
         Serial.println("INFO: Touchdown detectado. Transición a APAGADO.");
       } else {
         calcularControl();
-        actualizarMotores(true, 1750 + (int)u_alt, u_roll, u_pitch, u_yaw);
+        actualizarMotores(true, 1400 + (int)u_alt, u_roll, u_pitch, u_yaw);
       }
       break;
 

@@ -97,6 +97,9 @@ void tareaTelemetria(void *pvParameters) {
     // 1. Revisar si llegó un comando de armado/desarmado (UDP RX)
     recibirComandosUDP();
 
+    // Leemos el ADC a 50Hz, completamente asilado del lazo de control
+    actualizarBateria();
+
     // Aceleraciones crudas
     //Serial.print("AccX:"); Serial.print(AccX); Serial.print(",");
     //Serial.print("AccY:"); Serial.print(AccY); Serial.print(",");
