@@ -8,17 +8,22 @@
 float FactorCompensacionBateria = 1.0f;
 float VoltajeBateriaReal = 4.2f;
 
-// Factor = Voltaje medido con multímetro / Lectura ADC cruda
-const float FACTOR_ADC_A_VOLTIOS = 4.2f / 4095.0f; 
+// Factor Calibrado (4.0V Reales / 2369 de lectura cruda del ADC).
+// Este número YA contempla el divisor resistivo (multiplica por 2) 
+// y corrige la no-linealidad del hardware del ESP32.
+const float FACTOR_ADC_A_VOLTIOS = 0.001688f; 
+
 const float VOLTAJE_NOMINAL_HOVER = 3.7f; // El voltaje al que afinaste el LQR
 
 void actualizarBateria() {
+  // Al multiplicar por el nuevo factor, obtenemos el voltaje REAL de la LiPo
   float v_crudo = analogRead(PIN_BATERIA) * FACTOR_ADC_A_VOLTIOS;
   
   // Filtro Pasa-Bajos EMA (Suaviza el ruido eléctrico de los motores)
   VoltajeBateriaReal = (0.95f * VoltajeBateriaReal) + (0.05f * v_crudo);
   
   // Saturación segura (Evita que el PWM se multiplique por cero o infinito)
+  // Ahora limitamos estrictamente al rango real de una LiPo 1S (3.0V a 4.3V)
   float v_seguro = constrain(VoltajeBateriaReal, 3.0f, 4.3f);
   FactorCompensacionBateria = VOLTAJE_NOMINAL_HOVER / v_seguro;
 }
@@ -28,7 +33,6 @@ void actualizarBateria() {
 // ====================================================================
 void initMotores() {
   // 1. Inicializar Hardware de Motores (1 KHz, 12 bits)
-  // Utilizamos la API LEDC con el periférico PWM por hardware
   ledcAttach(PIN_MOTOR_1, 1000, 12);
   ledcAttach(PIN_MOTOR_2, 1000, 12);
   ledcAttach(PIN_MOTOR_3, 1000, 12);
@@ -38,7 +42,9 @@ void initMotores() {
 
   // 2. Inicializar Hardware de Batería
   pinMode(PIN_BATERIA, INPUT);
-  VoltajeBateriaReal = analogRead(PIN_BATERIA) * FACTOR_ADC_A_VOLTIOS; // Lectura inicial
+  
+  // Lectura inicial rápida para llenar la variable global
+  VoltajeBateriaReal = analogRead(PIN_BATERIA) * FACTOR_ADC_A_VOLTIOS; 
 }
 
 void actualizarMotores(bool armado, int throttleBase, float controlRoll, float controlPitch, float controlYaw) {
@@ -55,6 +61,7 @@ void actualizarMotores(bool armado, int throttleBase, float controlRoll, float c
   float m4_float = throttleBase - controlRoll - controlPitch + controlYaw + OFFSET_MOTOR_4;
 
   // 2. COMPENSACIÓN POR BATERÍA (Feedforward dinámico)
+  // Multiplicamos por el factor (ej. si la batería baja, el factor sube y acelera más)
   m1_float *= FactorCompensacionBateria;
   m2_float *= FactorCompensacionBateria;
   m3_float *= FactorCompensacionBateria;
