@@ -23,8 +23,8 @@ constexpr float Phi_2x2[2][2] = {
 };
 
 // Matrices de Entrada Estocástica (Gamma)
-constexpr float Gamma_roll_pitch[2] = {0.000001f, 0.000736f}; 
-constexpr float Gamma_yaw = 0.000007f;
+constexpr float Gamma_roll_pitch[2] = {1.4715e-6f, 0.000736f};
+constexpr float Gamma_yaw = 6.9524e-6f;
 constexpr float Gamma_alt_lqr[2] = {0.000131f, 0.065574f};
 constexpr float Gamma_alt_kf[2] = {0.000008f, 0.004000f};
 

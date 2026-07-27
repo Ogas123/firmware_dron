@@ -15,6 +15,14 @@ float AngleRoll_Acc, AnglePitch_Acc;
 
 float Temp;
 
+int16_t AccXLSB  = 0;
+int16_t AccYLSB  = 0;
+int16_t AccZLSB  = 0;
+int16_t TempLSB  = 0;
+int16_t GyroXLSB = 0;
+int16_t GyroYLSB = 0;
+int16_t GyroZLSB = 0;
+
 void initIMU() {
   // 1. Iniciar bus I2C en los pines D4(SDA) y D5(SCL) del ESP32-S3
   Wire.begin(PIN_IMU_SDA, PIN_IMU_SCL); 
@@ -77,15 +85,16 @@ void leerIMU() {
   Wire.beginTransmission(0x68);
   Wire.write(0x3B); // Registro inicial ACCEL_XOUT_H
   Wire.endTransmission(false); 
-  Wire.requestFrom(0x68, 14); // Pide los 14 bytes de corrido
 
-  int16_t AccXLSB  = Wire.read() << 8 | Wire.read();
-  int16_t AccYLSB  = Wire.read() << 8 | Wire.read();
-  int16_t AccZLSB  = Wire.read() << 8 | Wire.read();
-  int16_t TempLSB  = Wire.read() << 8 | Wire.read();
-  int16_t GyroXLSB = Wire.read() << 8 | Wire.read();
-  int16_t GyroYLSB = Wire.read() << 8 | Wire.read();
-  int16_t GyroZLSB = Wire.read() << 8 | Wire.read();
+  if (Wire.requestFrom(0x68, 14) == 14) { // Pide los 14 bytes de corrido
+    AccXLSB  = Wire.read() << 8 | Wire.read();
+    AccYLSB  = Wire.read() << 8 | Wire.read();
+    AccZLSB  = Wire.read() << 8 | Wire.read();
+    TempLSB  = Wire.read() << 8 | Wire.read();
+    GyroXLSB = Wire.read() << 8 | Wire.read();
+    GyroYLSB = Wire.read() << 8 | Wire.read();
+    GyroZLSB = Wire.read() << 8 | Wire.read();
+  }
 
   // CÁLCULO DE TEMPERATURA
   Temp = (TempLSB / 340.0f) + 36.53f;

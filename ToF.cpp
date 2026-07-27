@@ -37,16 +37,10 @@ void initToF() {
 void leerToF() {
   // Pregunta si hay un dato nuevo sin bloquear el procesador a 250 Hz
   if (sensorToF.dataReady()) {
-    
-    // .read(false) lee el dato de forma asíncrona
-    distanciaAlturaMM = sensorToF.read(false); 
-
-    // Filtro de seguridad (saturación)
-    if (distanciaAlturaMM > 2000) {
-       distanciaAlturaMM = 2000; 
+    uint16_t dist = sensorToF.read(false);
+    if (sensorToF.ranging_data.range_status == 0 && dist > 10 && dist <= 2000) {
+      dist_tof_m = dist / 1000.0f;
     }
-
-    dist_tof_m = distanciaAlturaMM / 1000.0f;
   }
 }
 

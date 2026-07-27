@@ -11,7 +11,7 @@ void updateKalmanRecursive2x2(float x[2], float P[2][2], float u, const float y[
                               const float Gamma[2], const float Q[2][2], const float R[2][2]);
 
 // Nueva función exclusiva para la Altura (C = [1, 0])
-void updateKalmanAltura(float x[2], float P[2][2], float acc_z_g, float dist_tof_m);
+void updateKalmanAltura(float x[2], float P[2][2], float acc_z_g, float dist_tof_m, float roll_est_deg, float pitch_est_deg);
 
 // Firma actualizada
 void actualizarFiltrosLQG(float u_roll, float u_pitch, float u_yaw, float u_alt,
