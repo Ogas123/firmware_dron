@@ -39,11 +39,15 @@ void actualizarMotores(bool armado, int throttleBase, float controlRoll, float c
     return; 
   }
 
-  // 1. EL MIXER BRUTO (Cálculo matemático puro)
-  float m1_raw = throttleBase + controlRoll - controlPitch - controlYaw;
-  float m2_raw = throttleBase + controlRoll + controlPitch + controlYaw;
-  float m3_raw = throttleBase - controlRoll + controlPitch - controlYaw;
-  float m4_raw = throttleBase - controlRoll - controlPitch + controlYaw;
+  // 1. EL MIXER BRUTO (Estándar Aeronáutico NED - Mano Derecha Corregido)
+  // M1 (Delantero Derecho, CW):   -u_roll +u_pitch -u_yaw
+  // M2 (Trasero Derecho, CCW):   -u_roll -u_pitch +u_yaw
+  // M3 (Trasero Izquierdo, CW):  +u_roll -u_pitch -u_yaw
+  // M4 (Delantero Izquierdo, CCW): +u_roll +u_pitch +u_yaw
+  float m1_raw = throttleBase - controlRoll + controlPitch - controlYaw;
+  float m2_raw = throttleBase - controlRoll - controlPitch + controlYaw;
+  float m3_raw = throttleBase + controlRoll - controlPitch - controlYaw;
+  float m4_raw = throttleBase + controlRoll + controlPitch + controlYaw;
 
   // 2. COMPENSACIÓN POR BATERÍA
   m1_raw *= FactorCompensacionBateria;

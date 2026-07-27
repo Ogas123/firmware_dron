@@ -8,7 +8,7 @@
 // CONFIGURACIÓN DE VUELO
 // ====================================================================
 // Variable global fácil de modificar para ajustar el peso del dron
-int THROTTLE_HOVER = 1400; 
+int THROTTLE_HOVER = 0; 
 
 // Definición de las variables del supervisor
 float AlturaObjetivoFinal = 0.5f;     

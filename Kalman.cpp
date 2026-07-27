@@ -2,8 +2,8 @@
 #include "Kalman.h"
 #include "Config.h"
 
-// Traemos las aceleraciones crudas desde IMU.cpp para la matemática 3D
-extern float AccX, AccY;
+// Traemos las aceleraciones crudas en Body Frame (NED) desde IMU.cpp
+extern float AccX, AccY, AccZ;
 
 // ====================================================================
 // VARIABLES DE ESTADO Y COVARIANZA
@@ -80,10 +80,12 @@ void updateKalmanAltura(float x[2], float P[2][2], float acc_z_ms2, float dist_t
   float roll_rad  = roll_est_deg * DEG_TO_RAD;
   float pitch_rad = pitch_est_deg * DEG_TO_RAD;
 
-  // 2. TILT COMPENSATION: Rotamos el vector 3D al marco de la Tierra (Earth Frame)
-  float acc_z_suelo = AccY * (-sin(pitch_rad)) + 
-                    AccX * (sin(roll_rad) * cos(pitch_rad)) + 
-                    acc_z_ms2 * (cos(roll_rad) * cos(pitch_rad));
+  // 2. TILT COMPENSATION: Rotamos el vector de aceleración 3D al marco de la Tierra (Earth Frame Z-Down)
+  // Matriz de Cosenos Directores (DCM) estándar NED:
+  // a_z_earth = -AccX * sin(theta) + AccY * sin(phi) * cos(theta) + AccZ * cos(phi) * cos(theta)
+  float acc_z_suelo = -AccX * sin(pitch_rad) + 
+                      AccY * (sin(roll_rad) * cos(pitch_rad)) + 
+                      acc_z_ms2 * (cos(roll_rad) * cos(pitch_rad));
 
   // 3. Aceleración neta libre de gravedad
   float a_net = acc_z_suelo - 9.80665f;

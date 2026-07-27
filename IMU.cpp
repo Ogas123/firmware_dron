@@ -66,6 +66,7 @@ void initIMU() {
   
   float sumRoll = 0, sumPitch = 0, sumYaw = 0;
 
+  delay(100);
   for(int i = 0; i < 2000; i++){
     leerIMU();
     sumRoll += RateRoll;
@@ -102,13 +103,18 @@ void leerIMU() {
   // ---------------------------------
   // --- GIROSCOPIO ---
   // ---------------------------------
-  RatePitch = (float)GyroXLSB / 65.5f;
-  RateRoll  = (float)GyroYLSB / 65.5f;
-  RateYaw   = (float)GyroZLSB / 65.5f;
+  // Lecturas brutas en el marco del Sensor (S)
+  float GyroX_s = (float)GyroXLSB / 65.5f;
+  float GyroY_s = (float)GyroYLSB / 65.5f;
+  float GyroZ_s = (float)GyroZLSB / 65.5f;
 
-  RatePitch -= offsetPitch;
-  RateRoll  -= offsetRoll;
-  RateYaw   -= offsetYaw;
+  // Transformación a Body Frame (NED) corregida según telemetría física:
+  // - Roll: Ala derecha abajo  -> RateRoll POSITIVO (-GyroY_s)
+  // - Pitch: Nariz arriba       -> RatePitch POSITIVO (-GyroX_s)
+  // - Yaw: Giro horario (CW)    -> RateYaw POSITIVO (-GyroZ_s)
+  RateRoll  = -GyroY_s - offsetRoll;
+  RatePitch = -GyroX_s - offsetPitch;
+  RateYaw   = -GyroZ_s - offsetYaw;
 
   // ---------------------------------
   // --- ACELERÓMETRO ---
@@ -119,7 +125,7 @@ void leerIMU() {
   float AccY_crudo = ((float)AccYLSB / 4096.0f) * g_real;
   float AccZ_crudo = ((float)AccZLSB / 4096.0f) * g_real;
 
-  // 2. Restar el Offset (Vector 'b' calculado por tu Python)
+  // 2. Restar el Offset (Vector 'b' en Marco Sensor)
   float a_x_1 = AccX_crudo - B_X;
   float a_y_1 = AccY_crudo - B_Y;
   float a_z_1 = AccZ_crudo - B_Z;
@@ -129,12 +135,20 @@ void leerIMU() {
   float a_y_2 = a_y_1 * S_Y;
   float a_z_2 = a_z_1 * S_Z;
 
-  // 4. Multiplicar por la matriz de Desalineación (Tu modelo exacto)
-  AccX = a_x_2;
-  AccY = (ALFA_YX * a_x_2) + a_y_2;
-  AccZ = (ALFA_ZX * a_x_2) + (ALFA_ZY * a_y_2) + a_z_2;
+  // 4. Multiplicar por la matriz de Desalineación (Marco Sensor)
+  float AccX_s = a_x_2;
+  float AccY_s = (ALFA_YX * a_x_2) + a_y_2;
+  float AccZ_s = (ALFA_ZX * a_x_2) + (ALFA_ZY * a_y_2) + a_z_2;
 
-  // 5. Cálculo de ángulos (Tus fórmulas originales)
-  AnglePitch_Acc = atan2(AccY, sqrt(AccX*AccX + AccZ*AccZ)) * RAD_TO_DEG;
-  AngleRoll_Acc  = -atan2(AccX, sqrt(AccY*AccY + AccZ*AccZ)) * RAD_TO_DEG;
+  // 5. Mapeo a Body Frame (NED) según orientación física real
+  AccX = -AccY_s; // Eje X Body (Longitudinal: Nariz) -> Positivo al subir la nariz
+  AccY =  AccX_s; // Eje Y Body (Transversal: Ala Derecha) -> Positivo al bajar ala derecha
+  AccZ =  AccZ_s; // Eje Z Body (Vertical: Abajo)
+
+  // 6. Cálculo de Ángulos de Euler (Estándar Aeronáutico NED)
+  // Pitch (theta): Nariz arriba -> AnglePitch_Acc POSITIVO
+  AnglePitch_Acc = atan2(AccX, sqrt(AccY * AccY + AccZ * AccZ)) * RAD_TO_DEG;
+
+  // Roll (phi): Ala derecha abajo -> AngleRoll_Acc POSITIVO
+  AngleRoll_Acc  = atan2(AccY, sqrt(AccX * AccX + AccZ * AccZ)) * RAD_TO_DEG;
 }
