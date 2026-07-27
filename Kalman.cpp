@@ -74,7 +74,7 @@ void updateKalmanRecursive2x2(float x[2], float P[2][2], float u, const float y[
 // ====================================================================
 // FILTRO DE KALMAN PARA ALTURA (C = [1, 0]) CON TILT COMPENSATION
 // ====================================================================
-void updateKalmanAltura(float x[2], float P[2][2], float acc_z_ms2, float dist_tof_m, float roll_est_deg, float pitch_est_deg, bool nuevaMedicionToF) {
+void updateKalmanAltura(float x[2], float P[2][2], float acc_z_ms2, float dist_tof_m, float roll_est_deg, float pitch_est_deg) {
   
   // 1. Convertimos los ángulos estimados a radianes
   float roll_rad  = roll_est_deg * DEG_TO_RAD;
@@ -101,32 +101,25 @@ void updateKalmanAltura(float x[2], float P[2][2], float acc_z_ms2, float dist_t
   P_pred[1][0] = P[1][0] + h*P[1][1] + Q_alt[1][0];
   P_pred[1][1] = P[1][1] + Q_alt[1][1];
 
-  if (nuevaMedicionToF) {
-    // CORRECCIÓN SOLO CUANDO HAY MEDICIÓN NUEVA FRESCA DEL ToF (Evita colapso por multi-rate)
-    float S = P_pred[0][0] + R_alt_scalar; 
-    
-    float K[2];
-    K[0] = P_pred[0][0] / S;
-    K[1] = P_pred[1][0] / S;
+  // 4. Compensación de inclinación en la distancia del ToF (Proyección vertical real al suelo)
+  float dist_tof_suelo = dist_tof_m * cos(roll_rad) * cos(pitch_rad);
 
-    float err = dist_tof_m - x_pred[0];
+  // 5. CORRECCIÓN CONTINUA A 250 Hz (Evita acumulación de covarianza y saltos tipo serrucho)
+  float S = P_pred[0][0] + R_alt_scalar; 
+  
+  float K[2];
+  K[0] = P_pred[0][0] / S;
+  K[1] = P_pred[1][0] / S;
 
-    x[0] = x_pred[0] + K[0] * err;
-    x[1] = x_pred[1] + K[1] * err;
+  float err = dist_tof_suelo - x_pred[0];
 
-    P[0][0] = P_pred[0][0] - K[0] * P_pred[0][0];
-    P[0][1] = P_pred[0][1] - K[0] * P_pred[0][1];
-    P[1][0] = P_pred[1][0] - K[1] * P_pred[0][0];
-    P[1][1] = P_pred[1][1] - K[1] * P_pred[0][1];
-  } else {
-    // Si no hay muestra nueva, el estado y la covarianza coinciden con la predicción cinemática
-    x[0] = x_pred[0];
-    x[1] = x_pred[1];
-    P[0][0] = P_pred[0][0];
-    P[0][1] = P_pred[0][1];
-    P[1][0] = P_pred[1][0];
-    P[1][1] = P_pred[1][1];
-  }
+  x[0] = x_pred[0] + K[0] * err;
+  x[1] = x_pred[1] + K[1] * err;
+
+  P[0][0] = P_pred[0][0] - K[0] * P_pred[0][0];
+  P[0][1] = P_pred[0][1] - K[0] * P_pred[0][1];
+  P[1][0] = P_pred[1][0] - K[1] * P_pred[0][0];
+  P[1][1] = P_pred[1][1] - K[1] * P_pred[0][1];
 }
 
 // ====================================================================
@@ -134,7 +127,7 @@ void updateKalmanAltura(float x[2], float P[2][2], float acc_z_ms2, float dist_t
 // ====================================================================
 void actualizarFiltrosLQG(float u_roll, float u_pitch, float u_yaw, float u_alt,
                           float y_roll[2], float y_pitch[2], float y_yaw, 
-                          float dist_tof_m, float acc_z_ms2, bool nuevaMedicionToF) { 
+                          float dist_tof_m, float acc_z_ms2) { 
   
   // Buffers locales para que el control no lea variables a medias
   float temp_roll[2]  = {x_hat_roll[0], x_hat_roll[1]};
@@ -154,8 +147,8 @@ void actualizarFiltrosLQG(float u_roll, float u_pitch, float u_yaw, float u_alt,
   temp_yaw[0] = x_pred_yaw + K_yaw_gain * (y_yaw - x_pred_yaw);
   P_yaw[0] = (1.0f - K_yaw_gain) * P_pred_yaw;
 
-  // 3. Filtro de Altura (Le pasamos los ángulos de Roll y Pitch recién estimados y la bandera ToF)
-  updateKalmanAltura(temp_alt, P_alt, acc_z_ms2, dist_tof_m, temp_roll[0], temp_pitch[0], nuevaMedicionToF);
+  // 3. Filtro de Altura (Le pasamos los ángulos de Roll y Pitch recién estimados)
+  updateKalmanAltura(temp_alt, P_alt, acc_z_ms2, dist_tof_m, temp_roll[0], temp_pitch[0]);
 
   // Actualización global final
   x_hat_roll[0]  = temp_roll[0];

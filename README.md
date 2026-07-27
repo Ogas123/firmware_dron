@@ -24,7 +24,7 @@ graph TD
         Loop --> ToF[Lectura ToF VL53L1X]
         IMU --> LM[Calibración Levenberg-Marquardt]
         LM --> Kalman[Filtro de Kalman LQG]
-        ToF -->|nuevaMedicionToF| Kalman
+        ToF --> Kalman
         Kalman --> LQR[Control LQR / LQI]
         LQR --> Sup[Supervisor de Vuelo State Machine]
         Sup --> Mixer[Mezclador de Motores & Desaturación]
@@ -96,9 +96,9 @@ constexpr float B_Y     = 0.016393f;
 constexpr float B_Z     = 0.223452f;
 ```
 
-### 3.3. Sensor Láser ToF (VL53L1X) y Gestión Multitasa (*Multi-rate*)
+### 3.3. Sensor Láser ToF (VL53L1X) y Filtrado Continuo con Compensación de Inclinación
 * Operación en modo `Short` (medición continua hasta 1.3 m) con un *Timing Budget* de 33 ms (~30 Hz).
-* **Gestión Multitasa en Kalman:** Como la IMU se lee a 250 Hz y el ToF actualiza a ~30 Hz, `ToF.cpp` retorna una bandera `nuevaMedicionToF`. El Filtro de Kalman de altura ejecuta la **predicción cinemática en cada ciclo (250 Hz)**, pero **solamente ejecuta la corrección de innovación cuando `nuevaMedicionToF == true`**, previniendo la degradación de la estimación de velocidad vertical $V_z$.
+* **Estimación Continua y Suave a 250 Hz:** El Filtro de Kalman de altura procesa la predicción cinemática y la corrección de forma continua en cada ciclo del lazo de 250 Hz (4 ms), aplicando compensación de inclinación (*tilt compensation*) según los ángulos de Roll y Pitch. Esto elimina las discontinuidades multitasa y garantiza una estimación de altura y velocidad vertical ($V_z$) suave y libre de patrones en forma de serrucho.
 
 ---
 
