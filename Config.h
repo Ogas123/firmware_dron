@@ -55,8 +55,8 @@ constexpr float R_alt_scalar = 0.0050f; // Ruido del sensor láser ToF VL53L1X
 
 // Ganancias de realimentación (L) precalculadas en estado estacionario (Python)
 // u(k) = -L * x_hat(k)
-constexpr float L_roll[2]  = {4.46f, 7.11f};
-constexpr float L_pitch[2] = {4.46f, 7.11f};
+constexpr float L_roll[3]  = {10.8384f, 10.9379f, 4.4541f}; 
+constexpr float L_pitch[3] = {10.8384f, 10.9379f, 4.4541f};
 constexpr float L_yaw[1]   = {22.36f};
 constexpr float L_alt[2]   = {1715.94f, 853.27f};
 
@@ -129,13 +129,6 @@ constexpr float P0_1x1 = 10.0f;
 #define PIN_MOTOR_2 6
 #define PIN_MOTOR_3 3
 #define PIN_MOTOR_4 4
-
-// Offsets de ecualización de potencia por motor (compensación de desgaste/diferencia mecánica)
-#define OFFSET_MOTOR_1 500  // Front-Right (FR) +40 PWM extra para compensar falta de fuerza
-#define OFFSET_MOTOR_2   0  // Rear-Right (RR)
-#define OFFSET_MOTOR_3   0  // Rear-Left (RL)
-#define OFFSET_MOTOR_4 110  // Front-Left (FL)
-
 
 
 // ==========================================

@@ -4,6 +4,12 @@
 #include "Motores.h"
 #include "Telemetria.h"
 
+// ====================================================================
+// CONFIGURACIÓN DE VUELO
+// ====================================================================
+// Variable global fácil de modificar para ajustar el peso del dron
+int THROTTLE_HOVER = 1400; 
+
 // Definición de las variables del supervisor
 float AlturaObjetivoFinal = 0.5f;     
 float TasaAscenso = 0.001f;           
@@ -19,11 +25,18 @@ void ejecutarSupervisorVuelo() {
   switch (estadoActual) {
       
     case DESPEGANDO:
-      if (baseThrottleDinamico < 1400.0f) {
+      if (baseThrottleDinamico < THROTTLE_HOVER) {
+        // 1. Rampa suave de motores hasta llegar al empuje de vuelo
         baseThrottleDinamico += 2.0f;   
-        DesiredAltitude = x_hat_alt[0]; 
+        DesiredAltitude = x_hat_alt[0]; // Acompañamos la altura real para que el LQR no haga fuerza
       } else {
-        DesiredAltitude += TasaAscenso;
+        // 2. Ya tenemos el empuje base. Empezamos a pedirle altura al LQR.
+        // TRUCO INDUSTRIAL: Límite de error de seguimiento (Tracking Error Limit).
+        // Solo subimos la meta si la diferencia con la realidad es menor a 5 cm.
+        if ((DesiredAltitude - x_hat_alt[0]) < 0.05f) {
+          DesiredAltitude += TasaAscenso;
+        }
+        
         if (DesiredAltitude >= AlturaObjetivoFinal) {
           DesiredAltitude = AlturaObjetivoFinal;
           estadoActual = VOLANDO; 
@@ -37,7 +50,7 @@ void ejecutarSupervisorVuelo() {
     case VOLANDO:
       DesiredAltitude = AlturaObjetivoFinal; 
       calcularControl();
-      actualizarMotores(true, 1400 + (int)u_alt, u_roll, u_pitch, u_yaw);
+      actualizarMotores(true, THROTTLE_HOVER + (int)u_alt, u_roll, u_pitch, u_yaw);
       break;
 
     case ATERRIZANDO:
@@ -47,7 +60,7 @@ void ejecutarSupervisorVuelo() {
         Serial.println("INFO: Touchdown detectado. Transición a APAGADO.");
       } else {
         calcularControl();
-        actualizarMotores(true, 1400 + (int)u_alt, u_roll, u_pitch, u_yaw);
+        actualizarMotores(true, THROTTLE_HOVER + (int)u_alt, u_roll, u_pitch, u_yaw);
       }
       break;
 

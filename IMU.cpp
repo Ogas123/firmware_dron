@@ -19,7 +19,9 @@ void initIMU() {
   // 1. Iniciar bus I2C en los pines D4(SDA) y D5(SCL) del ESP32-S3
   Wire.begin(PIN_IMU_SDA, PIN_IMU_SCL); 
   Wire.setClock(400000);  // Reloj I2C al máximo (Fast Mode)
-  delay(250);   // Tiempo para que la IMU estabilice su energía
+  
+  // Si el bus I2C se traba, se aborta rápido para no arruinar el Lazo de 4ms (250Hz)
+  Wire.setTimeOut(2);  delay(250);   // Tiempo para que la IMU estabilice su energía
 
   // 2. Despertar a la MPU6050
   Wire.beginTransmission(0x68);
@@ -61,6 +63,7 @@ void initIMU() {
     sumRoll += RateRoll;
     sumPitch += RatePitch;
     sumYaw += RateYaw;
+    delay(1);
   }
   offsetRoll = sumRoll / 2000.0;
   offsetPitch = sumPitch / 2000.0;
