@@ -5,6 +5,6 @@
 extern float dist_tof_m; 
 
 void initToF();
-void leerToF();
+bool leerToF();
 
 #endif

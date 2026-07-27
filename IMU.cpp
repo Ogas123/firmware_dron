@@ -24,6 +24,8 @@ int16_t GyroYLSB = 0;
 int16_t GyroZLSB = 0;
 
 void initIMU() {
+  pinMode(PIN_LED_BLUE, OUTPUT);
+  
   // 1. Iniciar bus I2C en los pines D4(SDA) y D5(SCL) del ESP32-S3
   Wire.begin(PIN_IMU_SDA, PIN_IMU_SCL); 
   Wire.setClock(400000);  // Reloj I2C al máximo (Fast Mode)

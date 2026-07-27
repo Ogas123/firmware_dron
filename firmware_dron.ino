@@ -93,7 +93,7 @@ void loop() {
     
     // 1. Leer Sensores
     leerIMU();
-    leerToF();
+    bool nuevaMedicionToF = leerToF();
 
     float y_roll[2]  = {AngleRoll_Acc, RateRoll};
     float y_pitch[2] = {AnglePitch_Acc, RatePitch};
@@ -102,7 +102,7 @@ void loop() {
     // 2. Filtro de Kalman Dinámico
     actualizarFiltrosLQG(u_roll, u_pitch, u_yaw, u_alt, 
                          y_roll, y_pitch, y_yaw, 
-                         dist_tof_m, AccZ);
+                         dist_tof_m, AccZ, nuevaMedicionToF);
 
     // 3. Ejecutar Máquina de Estados (Supervisor)
     ejecutarSupervisorVuelo();

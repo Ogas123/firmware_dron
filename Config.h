@@ -74,15 +74,15 @@ constexpr float P0_1x1 = 10.0f;
 // ==========================================================
 // PARÁMETROS CALIBRADOS LEVENBERG-MARQUARDT
 // ==========================================================
-#define ALFA_YX    0.000278
-#define ALFA_ZX    0.001603
-#define ALFA_ZY    0.000864
-#define S_X        1.005936
-#define S_Y        0.997343
-#define S_Z        0.991658
-#define B_X        0.313151
-#define B_Y        0.016393
-#define B_Z        0.223452
+constexpr float ALFA_YX = 0.000278f;
+constexpr float ALFA_ZX = 0.001603f;
+constexpr float ALFA_ZY = 0.000864f;
+constexpr float S_X     = 1.005936f;
+constexpr float S_Y     = 0.997343f;
+constexpr float S_Z     = 0.991658f;
+constexpr float B_X     = 0.313151f;
+constexpr float B_Y     = 0.016393f;
+constexpr float B_Z     = 0.223452f;
 // ==========================================================
 
 

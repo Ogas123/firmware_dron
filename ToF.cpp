@@ -34,13 +34,15 @@ void initToF() {
   sensorToF.startContinuous(33); 
 }
 
-void leerToF() {
+bool leerToF() {
   // Pregunta si hay un dato nuevo sin bloquear el procesador a 250 Hz
   if (sensorToF.dataReady()) {
     uint16_t dist = sensorToF.read(false);
     if (sensorToF.ranging_data.range_status == 0 && dist > 10 && dist <= 2000) {
       dist_tof_m = dist / 1000.0f;
+      return true;
     }
   }
+  return false;
 }
 
