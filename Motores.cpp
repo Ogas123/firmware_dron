@@ -34,20 +34,16 @@ void initMotores() {
 
 void actualizarMotores(bool armado, int throttleBase, float controlRoll, float controlPitch, float controlYaw) {
   
-  if (!armado) {
+  if (!armado || throttleBase <= 0) {
     apagarMotores();
     return; 
   }
 
-  // 1. EL MIXER BRUTO (Estándar Aeronáutico NED - Mano Derecha Corregido)
-  // M1 (Delantero Derecho, CW):   -u_roll +u_pitch -u_yaw
-  // M2 (Trasero Derecho, CCW):   -u_roll -u_pitch +u_yaw
-  // M3 (Trasero Izquierdo, CW):  +u_roll -u_pitch -u_yaw
-  // M4 (Delantero Izquierdo, CCW): +u_roll +u_pitch +u_yaw
-  float m1_raw = throttleBase - controlRoll + controlPitch - controlYaw;
-  float m2_raw = throttleBase - controlRoll - controlPitch + controlYaw;
-  float m3_raw = throttleBase + controlRoll - controlPitch - controlYaw;
-  float m4_raw = throttleBase + controlRoll + controlPitch + controlYaw;
+  // 1. EL MIXER BRUTO (Estándar Aeronáutico NED)
+  float m1_raw = (float)throttleBase - controlRoll + controlPitch + controlYaw;
+  float m2_raw = (float)throttleBase - controlRoll - controlPitch - controlYaw;
+  float m3_raw = (float)throttleBase + controlRoll - controlPitch + controlYaw;
+  float m4_raw = (float)throttleBase + controlRoll + controlPitch - controlYaw;
 
   // 2. COMPENSACIÓN POR BATERÍA
   m1_raw *= FactorCompensacionBateria;
@@ -55,19 +51,10 @@ void actualizarMotores(bool armado, int throttleBase, float controlRoll, float c
   m3_raw *= FactorCompensacionBateria;
   m4_raw *= FactorCompensacionBateria;
 
-  // 3. DESATURACIÓN PRIORITARIA (El secreto de la estabilidad)
-  // Buscamos cuál es el motor más exigido
-  float max_motor = m1_raw;
-  if (m2_raw > max_motor) max_motor = m2_raw;
-  if (m3_raw > max_motor) max_motor = m3_raw;
-  if (m4_raw > max_motor) max_motor = m4_raw;
-
-  // Si el LQR pide más de lo que el PWM puede dar (4095)
+  // 3. DESATURACIÓN SUPERIOR PRIORITARIA
+  float max_motor = max(max(m1_raw, m2_raw), max(m3_raw, m4_raw));
   if (max_motor > 4095.0f) {
     float exceso = max_motor - 4095.0f;
-    
-    // Le quitamos el exceso a TODOS por igual. 
-    // Mantiene el delta de torque, sacrifica un poco de altitud temporalmente.
     m1_raw -= exceso;
     m2_raw -= exceso;
     m3_raw -= exceso;

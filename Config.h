@@ -22,10 +22,10 @@ constexpr float Phi_2x2[2][2] = {
     {0.0000f, 1.0000f}
 };
 
-// Matrices de Entrada Estocástica (Gamma)
-constexpr float Gamma_roll_pitch[2] = {1.4715e-6f, 0.000736f};
-constexpr float Gamma_yaw = 6.9524e-6f;
-constexpr float Gamma_alt_lqr[2] = {0.000131f, 0.065574f};
+// Matrices de Entrada Estocástica (Gamma) con Alta Precisión Notación Científica
+constexpr float Gamma_roll_pitch[2] = {1.6959e-06f, 0.000848f}; 
+constexpr float Gamma_yaw = 9.2699e-06f;
+constexpr float Gamma_alt_lqr[2] = {0.000000f, 0.000022f};
 constexpr float Gamma_alt_kf[2] = {0.000008f, 0.004000f};
 
 // Matrices de Covarianza de Ruido de Proceso (Q)
@@ -48,17 +48,26 @@ constexpr float R_yaw = 0.0010f;
 constexpr float R_alt_scalar = 0.0050f; // Ruido del sensor láser ToF VL53L1X
 
 
-
 // ==========================================================
-// 2. MATRICES DE CONTROL ÓPTIMO (LQR)
+// 2. MATRICES DE CONTROL ÓPTIMO AUMENTADO (LQI)
 // ==========================================================
 
-// Ganancias de realimentación (L) precalculadas en estado estacionario (Python)
-// u(k) = -L * x_hat(k)
-constexpr float L_roll[3]  = {10.8384f, 10.9379f, 4.4541f}; 
-constexpr float L_pitch[3] = {10.8384f, 10.9379f, 4.4541f};
-constexpr float L_yaw[1]   = {22.36f};
+// Ganancias de realimentación (L) precalculadas en estado estacionario (2x2 LQR Ajustado)
+// u(k) = -L * x_hat(k) = -L0 * (pos - pos_ref) - L1 * vel
+constexpr float L_roll[2]  = {2.2317f, 4.5941f}; // L0 (Ángulo) y L1 (Velocidad Angular)
+constexpr float L_pitch[2] = {2.2317f, 4.5941f}; // Idéntico por simetría estructural
+constexpr float L_yaw[1]   = {4.4720f};          // Tasa de Guiñada r
 constexpr float L_alt[2]   = {1715.94f, 853.27f};
+
+// ==========================================================
+// TRIMS DE ACTITUD PARA ELIMINAR DERIVA LATERAL Y LONGITUDINAL
+// ==========================================================
+// Si el dron se va a la derecha -> TRIM_ROLL negativo (ej: -1.2f)
+// Si el dron se va a la izquierda -> TRIM_ROLL positivo (ej: +1.2f)
+// Si el dron se va adelante -> TRIM_PITCH negativo (ej: -1.0f)
+// Si el dron se va atrás -> TRIM_PITCH positivo (ej: +1.0f)
+constexpr float TRIM_ROLL  = 0.0f; // [grados]
+constexpr float TRIM_PITCH = 0.0f; // [grados]
 
 // ==========================================================
 // 3. MATRICES INICIALES DE INCERTIDUMBRE (P0)

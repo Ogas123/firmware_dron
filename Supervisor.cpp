@@ -8,7 +8,7 @@
 // CONFIGURACIÓN DE VUELO
 // ====================================================================
 // Variable global fácil de modificar para ajustar el peso del dron
-int THROTTLE_HOVER = 0; 
+int THROTTLE_HOVER = 1500; 
 
 // Definición de las variables del supervisor
 float AlturaObjetivoFinal = 0.5f;     
@@ -25,14 +25,21 @@ void ejecutarSupervisorVuelo() {
   switch (estadoActual) {
       
     case DESPEGANDO:
-      if (baseThrottleDinamico < THROTTLE_HOVER) {
-        // 1. Rampa suave de motores hasta llegar al empuje de vuelo
-        baseThrottleDinamico += 2.0f;   
-        DesiredAltitude = x_hat_alt[0]; // Acompañamos la altura real para que el LQR no haga fuerza
+      calcularControl();
+      
+      if (baseThrottleDinamico < (float)THROTTLE_HOVER) {
+        // 1. Rampa rápida de despegue (+8.0 PWM por ciclo) para desapegarse del suelo limpiamente
+        baseThrottleDinamico += 8.0f;   
+        DesiredAltitude = x_hat_alt[0]; 
+        u_alt = 0.0f;                    
+        
+        // Mientras el empuje sea menor al 70% de hover (apoyado en suelo):
+        // Se desactiva u_yaw para evitar que gire sobre sus patitas antes de despegar
+        if (baseThrottleDinamico < (0.70f * THROTTLE_HOVER)) {
+          u_yaw = 0.0f;
+        }
       } else {
-        // 2. Ya tenemos el empuje base. Empezamos a pedirle altura al LQR.
-        // TRUCO INDUSTRIAL: Límite de error de seguimiento (Tracking Error Limit).
-        // Solo subimos la meta si la diferencia con la realidad es menor a 5 cm.
+        // 2. Ya en el aire: habilitar control de altura y transición a VOLANDO
         if ((DesiredAltitude - x_hat_alt[0]) < 0.05f) {
           DesiredAltitude += TasaAscenso;
         }
@@ -43,7 +50,6 @@ void ejecutarSupervisorVuelo() {
           Serial.println("INFO: Meta de altura alcanzada. Transición a VOLANDO.");
         }
       }
-      calcularControl();
       actualizarMotores(true, (int)baseThrottleDinamico + (int)u_alt, u_roll, u_pitch, u_yaw);
       break;
 
