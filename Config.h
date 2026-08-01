@@ -52,22 +52,19 @@ constexpr float R_alt_scalar = 0.0050f; // Ruido del sensor láser ToF VL53L1X
 // 2. MATRICES DE CONTROL ÓPTIMO AUMENTADO (LQI)
 // ==========================================================
 
-// Ganancias de realimentación (L) precalculadas en estado estacionario (2x2 LQR Ajustado)
-// u(k) = -L * x_hat(k) = -L0 * (pos - pos_ref) - L1 * vel
-constexpr float L_roll[2]  = {2.2317f, 4.5941f}; // L0 (Ángulo) y L1 (Velocidad Angular)
-constexpr float L_pitch[2] = {2.2317f, 4.5941f}; // Idéntico por simetría estructural
-constexpr float L_yaw[1]   = {4.4720f};          // Tasa de Guiñada r
+// Ganancias de realimentación (L) precalculadas en estado estacionario (2x2 LQR Óptimo)
+// u(k) = -L0 * (pos - pos_ref) - L1 * vel
+constexpr float L_roll[2]  = {4.4600f, 7.1100f}; // L0 (Ángulo) y L1 (Velocidad Angular)
+constexpr float L_pitch[2] = {4.4600f, 7.1100f}; // Idéntico por simetría estructural
+constexpr float L_yaw[1]   = {4.4720f};                  // Tasa de Guiñada r
 constexpr float L_alt[2]   = {1715.94f, 853.27f};
 
 // ==========================================================
 // TRIMS DE ACTITUD PARA ELIMINAR DERIVA LATERAL Y LONGITUDINAL
 // ==========================================================
-// Si el dron se va a la derecha -> TRIM_ROLL negativo (ej: -1.2f)
-// Si el dron se va a la izquierda -> TRIM_ROLL positivo (ej: +1.2f)
-// Si el dron se va adelante -> TRIM_PITCH negativo (ej: -1.0f)
-// Si el dron se va atrás -> TRIM_PITCH positivo (ej: +1.0f)
-constexpr float TRIM_ROLL  = 0.0f; // [grados]
-constexpr float TRIM_PITCH = 0.0f; // [grados]
+// TRIM_ROLL = -1.5f compensa la deriva a la derecha desplazando el setpoint a la izquierda
+constexpr float TRIM_ROLL  = -1.5f; // [grados]
+constexpr float TRIM_PITCH = 0.0f;  // [grados]
 
 // ==========================================================
 // 3. MATRICES INICIALES DE INCERTIDUMBRE (P0)

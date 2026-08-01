@@ -38,12 +38,12 @@ void calcularControl() {
     return;
   }
 
-  // 1. Canal Roll (LQR 2x2 con Trim de Compensación de Deriva)
+  // 1. Canal Roll (LQR 2x2 - Inclinación Lateral phi y Tasa p)
   float err_roll_0 = x_hat_roll[0] - (DesiredAngleRoll + TRIM_ROLL);
   float err_roll_1 = x_hat_roll[1] - 0.0f; 
   u_roll = -(L_roll[0] * err_roll_0 + L_roll[1] * err_roll_1);
 
-  // 2. Canal Pitch (LQR 2x2 con Trim de Compensación de Deriva)
+  // 2. Canal Pitch (LQR 2x2 - Inclinación Longitudinal theta y Tasa q)
   float err_pitch_0 = x_hat_pitch[0] - (DesiredAnglePitch + TRIM_PITCH);
   float err_pitch_1 = x_hat_pitch[1] - 0.0f;
   u_pitch = -(L_pitch[0] * err_pitch_0 + L_pitch[1] * err_pitch_1);
@@ -56,4 +56,8 @@ void calcularControl() {
   float err_alt_0 = x_hat_alt[0] - DesiredAltitude;
   float err_alt_1 = x_hat_alt[1] - 0.0f;
   u_alt = -(L_alt[0] * err_alt_0 + L_alt[1] * err_alt_1);
+
+  // Clamping de seguridad para empuje de altura (+/- 300 PWM)
+  if (u_alt > 300.0f)  u_alt = 300.0f;
+  if (u_alt < -300.0f) u_alt = -300.0f;
 }
