@@ -12,19 +12,6 @@
 // --- Parámetros de Tiempo ---
 constexpr float h = 0.004f; // 250 Hz (4 ms)
 
-// --------------------------------------------------------------------
-// CONSTANTES EN PRECISIÓN SIMPLE (FPU del ESP32-S3)
-// --------------------------------------------------------------------
-// El Xtensa LX7 tiene FPU de 32 bits por hardware; toda operacion en double
-// se emula por software. Las macros DEG_TO_RAD / RAD_TO_DEG de Arduino son
-// literales double, asi que multiplicar por ellas promueve la expresion a
-// double y dispara la emulacion. Estas versiones 'f' mantienen el lazo de
-// 4 ms integramente en la FPU.
-// --------------------------------------------------------------------
-constexpr float DEG2RAD_F  = 0.01745329252f;
-constexpr float RAD2DEG_F  = 57.29577951f;
-constexpr float GRAVEDAD_F = 9.80665f;      // [m/s^2]
-
 // ==========================================================
 // 1. MATRICES DE ESTIMACIÓN (FILTRO DE KALMAN - LQE)
 // ==========================================================
@@ -35,26 +22,11 @@ constexpr float Phi_2x2[2][2] = {
     {0.0000f, 1.0000f}
 };
 
-// --------------------------------------------------------------------
-// CONVENIO DE UNIDADES (coherente entre el cuaderno y el firmware)
-// --------------------------------------------------------------------
-// Actitud  : angulo [grados], velocidad angular [grados/s], u [cuentas PWM]
-// Guiñada  : velocidad angular [grados/s], u [cuentas PWM]
-// Altura   : posicion [m], velocidad [m/s], u [cuentas PWM]
-//
-// Los modelos continuos se derivan de Newton-Euler en rad/s^2 y se convierten
-// a grados/s^2 ANTES de discretizar por ZOH, de modo que Phi, Gamma y L viven
-// todos en el mismo sistema de unidades que los estados del filtro:
-//   b_actitud = (K_tau / I_xx) * 180/pi = 12.145638 grados/s^2 por cuenta PWM
-//   b_guiñada = (K_kappa / I_zz) * 180/pi = 0.132781 grados/s^2 por cuenta PWM
-//   b_altura  = K_thrust / m              = 0.005448 m/s^2 por cuenta PWM
-// --------------------------------------------------------------------
-
 // Matrices de Entrada Estocástica (Gamma) con Alta Precisión Notación Científica
-constexpr float Gamma_roll_pitch[2] = {9.716510e-05f, 4.858255e-02f}; // [grados, grados/s] por cuenta PWM
-constexpr float Gamma_yaw           = 5.311252e-04f;                  // [grados/s] por cuenta PWM
-constexpr float Gamma_alt_lqr[2]    = {4.358511e-08f, 2.179256e-05f}; // [m, m/s] por cuenta PWM
-constexpr float Gamma_alt_kf[2]     = {8.000000e-06f, 4.000000e-03f}; // [m, m/s] por (m/s^2) de AccZ
+constexpr float Gamma_roll_pitch[2] = {1.6959e-06f, 0.000848f}; 
+constexpr float Gamma_yaw = 9.2699e-06f;
+constexpr float Gamma_alt_lqr[2] = {0.000000f, 0.000022f};
+constexpr float Gamma_alt_kf[2] = {0.000008f, 0.004000f};
 
 // Matrices de Covarianza de Ruido de Proceso (Q)
 constexpr float Q_roll_pitch[2][2] = {
@@ -77,18 +49,14 @@ constexpr float R_alt_scalar = 0.0050f; // Ruido del sensor láser ToF VL53L1X
 
 
 // ==========================================================
-// 2. GANANCIAS DE CONTROL ÓPTIMO (LQR PURO DE ESTADO, SIN ACCIÓN INTEGRAL)
+// 2. MATRICES DE CONTROL ÓPTIMO AUMENTADO (LQI)
 // ==========================================================
 
-// Ganancias de realimentación (L) precalculadas en estado estacionario (LQR Óptimo)
+// Ganancias de realimentación (L) precalculadas en estado estacionario (2x2 LQR Óptimo)
 // u(k) = -L0 * (pos - pos_ref) - L1 * vel
-// Todas son solucion exacta de la DARE sobre el modelo en unidades de firmware:
-//   Roll/Pitch : Q = diag(30.3683, 76.0562), R = 1       -> [4.4600, 7.1100]
-//   Yaw        : Q = 20.0464,                R = 1       -> 4.4720
-//   Altura     : Q = diag(300, 10),          R = 1e-4    -> [1715.94, 853.27]
 constexpr float L_roll[2]  = {4.4600f, 7.1100f}; // L0 (Ángulo) y L1 (Velocidad Angular)
 constexpr float L_pitch[2] = {4.4600f, 7.1100f}; // Idéntico por simetría estructural
-constexpr float L_yaw[1]   = {4.4720f};          // Tasa de Guiñada r
+constexpr float L_yaw[1]   = {4.4720f};                  // Tasa de Guiñada r
 constexpr float L_alt[2]   = {1715.94f, 853.27f};
 
 // ==========================================================
@@ -138,14 +106,11 @@ constexpr float B_Z     = 0.223452f;
 #define PIN_TOF_SDA 40
 #define PIN_TOF_SCL 41
 
-// --- SPI (cabecera libre en la PCB, sin sensor asignado) ---
-// El diseño final no incorpora sensor de flujo óptico: no hay estados de
-// velocidad ni de posición horizontal (ver §1.1 del cuaderno). Los pines
-// quedan documentados porque la PCB los rutea, pero el firmware no los usa.
-#define PIN_SPI_MISO 37
-#define PIN_SPI_MOSI 35
-#define PIN_SPI_CLK  36
-#define PIN_SPI_CS   42
+// --- SPI (Flujo Óptico PMW3901) ---
+#define PIN_OPT_MISO 37
+#define PIN_OPT_MOSI 35
+#define PIN_OPT_CLK  36
+#define PIN_OPT_CS   42
 
 // --- Alertas Acústicas ---
 #define PIN_BUZZER_PLUS  39

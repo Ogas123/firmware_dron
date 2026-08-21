@@ -76,19 +76,28 @@ void updateKalmanRecursive2x2(float x[2], float P[2][2], float u, const float y[
 // ====================================================================
 void updateKalmanAltura(float x[2], float P[2][2], float acc_z_ms2, float dist_tof_m, float roll_est_deg, float pitch_est_deg) {
   
-  // 1. Convertimos los ángulos estimados a radianes
-  float roll_rad  = roll_est_deg * DEG_TO_RAD;
-  float pitch_rad = pitch_est_deg * DEG_TO_RAD;
+  // 1. Convertimos los ángulos estimados a radianes (constante float: sin promoción a double)
+  float roll_rad  = roll_est_deg  * DEG2RAD_F;
+  float pitch_rad = pitch_est_deg * DEG2RAD_F;
+
+  // Evaluamos los cuatro senos/cosenos UNA sola vez con las variantes 'f' de
+  // libm: sinf/cosf operan en la FPU de 32 bits del LX7, mientras que sin/cos
+  // fuerzan la emulación de doble precisión por software. Reutilizarlos aquí
+  // ahorra además las 4 evaluaciones trigonométricas duplicadas del paso 4.
+  const float sin_roll  = sinf(roll_rad);
+  const float cos_roll  = cosf(roll_rad);
+  const float sin_pitch = sinf(pitch_rad);
+  const float cos_pitch = cosf(pitch_rad);
 
   // 2. TILT COMPENSATION: Rotamos el vector de aceleración 3D al marco de la Tierra (Earth Frame Z-Down)
   // Matriz de Cosenos Directores (DCM) estándar NED:
   // a_z_earth = -AccX * sin(theta) + AccY * sin(phi) * cos(theta) + AccZ * cos(phi) * cos(theta)
-  float acc_z_suelo = -AccX * sin(pitch_rad) + 
-                      AccY * (sin(roll_rad) * cos(pitch_rad)) + 
-                      acc_z_ms2 * (cos(roll_rad) * cos(pitch_rad));
+  float acc_z_suelo = -AccX * sin_pitch + 
+                      AccY * (sin_roll * cos_pitch) + 
+                      acc_z_ms2 * (cos_roll * cos_pitch);
 
   // 3. Aceleración neta libre de gravedad
-  float a_net = acc_z_suelo - 9.80665f;
+  float a_net = acc_z_suelo - GRAVEDAD_F;
 
   float x_pred[2];
   // Predicción cinemática usando a_net ya compensada
@@ -102,7 +111,7 @@ void updateKalmanAltura(float x[2], float P[2][2], float acc_z_ms2, float dist_t
   P_pred[1][1] = P[1][1] + Q_alt[1][1];
 
   // 4. Compensación de inclinación en la distancia del ToF (Proyección vertical real al suelo)
-  float dist_tof_suelo = dist_tof_m * cos(roll_rad) * cos(pitch_rad);
+  float dist_tof_suelo = dist_tof_m * cos_roll * cos_pitch;
 
   // 5. CORRECCIÓN CONTINUA A 250 Hz (Evita acumulación de covarianza y saltos tipo serrucho)
   float S = P_pred[0][0] + R_alt_scalar; 

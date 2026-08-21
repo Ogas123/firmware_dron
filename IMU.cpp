@@ -8,7 +8,6 @@ float RateRoll, RatePitch, RateYaw;
 float AccX, AccY, AccZ;
 
 float offsetRoll = 0, offsetPitch = 0, offsetYaw = 0;
-float offset_gravedad_ms2 = 9.80665f; 
 
 // Variables para los ángulos brutos del acelerómetro
 float AngleRoll_Acc, AnglePitch_Acc;
@@ -76,9 +75,9 @@ void initIMU() {
     sumYaw += RateYaw;
     delay(1);
   }
-  offsetRoll = sumRoll / 2000.0;
-  offsetPitch = sumPitch / 2000.0;
-  offsetYaw = sumYaw / 2000.0;
+  offsetRoll  = sumRoll  / 2000.0f;
+  offsetPitch = sumPitch / 2000.0f;
+  offsetYaw   = sumYaw   / 2000.0f;
 
   digitalWrite(PIN_LED_BLUE, HIGH); 
   Serial.println("Calibración completada!");
@@ -122,10 +121,9 @@ void leerIMU() {
   // --- ACELERÓMETRO ---
   // ---------------------------------
   // 1. Lectura directa en m/s^2
-  float g_real = 9.80665f;
-  float AccX_crudo = ((float)AccXLSB / 4096.0f) * g_real;
-  float AccY_crudo = ((float)AccYLSB / 4096.0f) * g_real;
-  float AccZ_crudo = ((float)AccZLSB / 4096.0f) * g_real;
+  float AccX_crudo = ((float)AccXLSB / 4096.0f) * GRAVEDAD_F;
+  float AccY_crudo = ((float)AccYLSB / 4096.0f) * GRAVEDAD_F;
+  float AccZ_crudo = ((float)AccZLSB / 4096.0f) * GRAVEDAD_F;
 
   // 2. Restar el Offset (Vector 'b' en Marco Sensor)
   float a_x_1 = AccX_crudo - B_X;
@@ -148,9 +146,16 @@ void leerIMU() {
   AccZ =  AccZ_s; // Eje Z Body (Vertical: Abajo)
 
   // 6. Cálculo de Ángulos de Euler (Estándar Aeronáutico NED)
+  // Variantes 'f' de libm (atan2f/sqrtf) y constante RAD2DEG_F en precisión
+  // simple: el LX7 resuelve todo esto en su FPU de 32 bits. Con atan2/sqrt/
+  // RAD_TO_DEG la expresión se promueve a double y se emula por software.
+  const float accX2 = AccX * AccX;
+  const float accY2 = AccY * AccY;
+  const float accZ2 = AccZ * AccZ;
+
   // Pitch (theta): Nariz arriba -> AnglePitch_Acc POSITIVO
-  AnglePitch_Acc = atan2(AccX, sqrt(AccY * AccY + AccZ * AccZ)) * RAD_TO_DEG;
+  AnglePitch_Acc = atan2f(AccX, sqrtf(accY2 + accZ2)) * RAD2DEG_F;
 
   // Roll (phi): Ala derecha abajo -> AngleRoll_Acc POSITIVO
-  AngleRoll_Acc  = atan2(AccY, sqrt(AccX * AccX + AccZ * AccZ)) * RAD_TO_DEG;
+  AngleRoll_Acc  = atan2f(AccY, sqrtf(accX2 + accZ2)) * RAD2DEG_F;
 }
