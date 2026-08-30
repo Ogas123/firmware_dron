@@ -4,7 +4,6 @@
 #include <Arduino.h>
 
 // Variables del supervisor de vuelo
-extern float TasaAscenso;
 extern float baseThrottleDinamico;
 extern int THROTTLE_HOVER;
 

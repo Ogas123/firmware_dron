@@ -1,0 +1,5 @@
+
+# Copias de respaldo locales
+*.bak
+*.bak_*
+*.orig

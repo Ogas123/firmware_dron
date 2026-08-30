@@ -57,7 +57,15 @@ void calcularControl() {
   float err_alt_1 = x_hat_alt[1] - 0.0f;
   u_alt = -(L_alt[0] * err_alt_0 + L_alt[1] * err_alt_1);
 
-  // Clamping de seguridad para empuje de altura (+/- 300 PWM)
-  if (u_alt > 300.0f)  u_alt = 300.0f;
-  if (u_alt < -300.0f) u_alt = -300.0f;
+  // ------------------------------------------------------------------
+  // Clamping de seguridad para el empuje de altura
+  // ------------------------------------------------------------------
+  // El límite anterior de +/-300 PWM era INSUFICIENTE cerca del suelo. Del
+  // registro de vuelo 2026-08-21 13:03: el empuje de sustentación es de 1590
+  // PWM a 0.50 m pero de ~1282 PWM apoyado, porque el efecto suelo aporta
+  // hasta un 10% de sustentación extra. Para cancelarlo el LQR necesita restar
+  // unos 318 PWM, más de lo que el clamp le permitía: el dron quedaba flotando
+  // sin poder bajar. Con +/-450 PWM queda margen sobre ese requerimiento.
+  if (u_alt > U_ALT_MAX)  u_alt = U_ALT_MAX;
+  if (u_alt < -U_ALT_MAX) u_alt = -U_ALT_MAX;
 }

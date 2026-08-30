@@ -85,11 +85,22 @@ constexpr float R_alt_scalar = 0.0050f; // Ruido del sensor láser ToF VL53L1X
 // Todas son solucion exacta de la DARE sobre el modelo en unidades de firmware:
 //   Roll/Pitch : Q = diag(30.3683, 76.0562), R = 1       -> [4.4600, 7.1100]
 //   Yaw        : Q = 20.0464,                R = 1       -> 4.4720
-//   Altura     : Q = diag(300, 10),          R = 1e-4    -> [1715.94, 853.27]
+//   Altura     : Q = diag(300, 10),          R = 1e-4    -> [1715.9370, 853.2671]
 constexpr float L_roll[2]  = {4.4600f, 7.1100f}; // L0 (Ángulo) y L1 (Velocidad Angular)
 constexpr float L_pitch[2] = {4.4600f, 7.1100f}; // Idéntico por simetría estructural
 constexpr float L_yaw[1]   = {4.4720f};          // Tasa de Guiñada r
-constexpr float L_alt[2]   = {1715.94f, 853.27f};
+constexpr float L_alt[2]   = {1715.9370f, 853.2671f};
+
+// Autoridad máxima del canal de altura, en cuentas PWM. Debe superar el empuje
+// extra que aporta el efecto suelo (~318 PWM medidos apoyado) o el dron no
+// puede completar el descenso.
+constexpr float U_ALT_MAX  = 450.0f;
+
+// Constante de tiempo del modo lento del canal de altura.
+// El LQR de altura es proporcional puro, sin acción integral, de modo que en
+// régimen la velocidad vertical vale  Vz = (adelanto de la referencia)/TAU_ALT.
+// De ahí salen tanto el límite de seguimiento del ascenso como el del descenso.
+constexpr float TAU_ALT    = L_alt[1] / L_alt[0]; // 0.4973 s
 
 // ==========================================================
 // TRIMS DE ACTITUD PARA ELIMINAR DERIVA LATERAL Y LONGITUDINAL
