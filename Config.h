@@ -45,15 +45,15 @@ constexpr float Phi_2x2[2][2] = {
 // Los modelos continuos se derivan de Newton-Euler en rad/s^2 y se convierten
 // a grados/s^2 ANTES de discretizar por ZOH, de modo que Phi, Gamma y L viven
 // todos en el mismo sistema de unidades que los estados del filtro:
-//   b_actitud = (K_tau / I_xx) * 180/pi = 12.145638 grados/s^2 por cuenta PWM
-//   b_guiñada = (K_kappa / I_zz) * 180/pi = 0.132781 grados/s^2 por cuenta PWM
-//   b_altura  = K_thrust / m              = 0.005448 m/s^2 por cuenta PWM
+//   b_actitud = (K_tau / I_xx) * 180/pi = 14.154261 grados/s^2 por cuenta PWM
+//   b_guiñada = (K_kappa / I_zz) * 180/pi = 0.161623 grados/s^2 por cuenta PWM
+//   b_altura  = K_thrust / m              = 0.006129 m/s^2 por cuenta PWM
 // --------------------------------------------------------------------
 
 // Matrices de Entrada Estocástica (Gamma) con Alta Precisión Notación Científica
-constexpr float Gamma_roll_pitch[2] = {9.716510e-05f, 4.858255e-02f}; // [grados, grados/s] por cuenta PWM
-constexpr float Gamma_yaw           = 5.311252e-04f;                  // [grados/s] por cuenta PWM
-constexpr float Gamma_alt_lqr[2]    = {4.358511e-08f, 2.179256e-05f}; // [m, m/s] por cuenta PWM
+constexpr float Gamma_roll_pitch[2] = {1.132341e-04f, 5.661704e-02f}; // [grados, grados/s] por cuenta PWM
+constexpr float Gamma_yaw           = 6.464926e-04f;                  // [grados/s] por cuenta PWM
+constexpr float Gamma_alt_lqr[2]    = {4.903325e-08f, 2.451662e-05f}; // [m, m/s] por cuenta PWM
 constexpr float Gamma_alt_kf[2]     = {8.000000e-06f, 4.000000e-03f}; // [m, m/s] por (m/s^2) de AccZ
 
 // Matrices de Covarianza de Ruido de Proceso (Q)
@@ -83,13 +83,13 @@ constexpr float R_alt_scalar = 0.0050f; // Ruido del sensor láser ToF VL53L1X
 // Ganancias de realimentación (L) precalculadas en estado estacionario (LQR Óptimo)
 // u(k) = -L0 * (pos - pos_ref) - L1 * vel
 // Todas son solucion exacta de la DARE sobre el modelo en unidades de firmware:
-//   Roll/Pitch : Q = diag(30.3683, 76.0562), R = 1       -> [4.4600, 7.1100]
-//   Yaw        : Q = 20.0464,                R = 1       -> 4.4720
-//   Altura     : Q = diag(300, 10),          R = 1e-4    -> [1715.9370, 853.2671]
-constexpr float L_roll[2]  = {4.4600f, 7.1100f}; // L0 (Ángulo) y L1 (Velocidad Angular)
-constexpr float L_pitch[2] = {4.4600f, 7.1100f}; // Idéntico por simetría estructural
-constexpr float L_yaw[1]   = {4.4720f};          // Tasa de Guiñada r
-constexpr float L_alt[2]   = {1715.9370f, 853.2671f};
+//   Roll/Pitch : Q = diag(30.3683, 76.0562), R = 1       -> [4.3103, 6.8657]
+//   Yaw        : Q = 900,                    R = 1       -> 29.7105
+//   Altura     : Q = diag(300, 10),          R = 1e-4    -> [1714.8206, 810.9143]
+constexpr float L_roll[2]  = {4.3103f, 6.8657f}; // L0 (Ángulo) y L1 (Velocidad Angular)
+constexpr float L_pitch[2] = {4.3103f, 6.8657f}; // Idéntico por simetría estructural
+constexpr float L_yaw[1]   = {29.7105f};         // Tasa de Guiñada r
+constexpr float L_alt[2]   = {1714.8206f, 810.9143f};
 
 // Autoridad máxima del canal de altura, en cuentas PWM. Debe superar el empuje
 // extra que aporta el efecto suelo (~318 PWM medidos apoyado) o el dron no
@@ -100,7 +100,7 @@ constexpr float U_ALT_MAX  = 450.0f;
 // El LQR de altura es proporcional puro, sin acción integral, de modo que en
 // régimen la velocidad vertical vale  Vz = (adelanto de la referencia)/TAU_ALT.
 // De ahí salen tanto el límite de seguimiento del ascenso como el del descenso.
-constexpr float TAU_ALT    = L_alt[1] / L_alt[0]; // 0.4973 s
+constexpr float TAU_ALT    = L_alt[1] / L_alt[0]; // 0.4729 s
 
 // ==========================================================
 // TRIMS DE ACTITUD PARA ELIMINAR DERIVA LATERAL Y LONGITUDINAL
