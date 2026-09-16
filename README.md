@@ -57,10 +57,12 @@ Es la regla que mantiene coherentes el cuaderno y el firmware, y conviene tenerl
 Newton-Euler entrega la aceleración angular en $\text{rad/s}^2$, así que la constante de entrada se convierte a $\text{grados/s}^2$ **antes** de discretizar por ZOH. De esa forma $\Phi$, $\Gamma$, $Q$, $R$ y $L$ viven todos en el mismo sistema de unidades que los estados del filtro:
 
 ```
-b_actitud = (K_tau / I_xx) * 180/pi = 12.145638  grados/s^2 por cuenta PWM
-b_guiñada = (K_kappa / I_zz) * 180/pi = 0.132781 grados/s^2 por cuenta PWM
-b_altura  = K_thrust / m              = 0.005448 m/s^2 por cuenta PWM
+b_actitud = (K_tau / I_xx) * 180/pi = 14.154261 grados/s^2 por cuenta PWM
+b_guiñada = (K_kappa / I_zz) * 180/pi = 0.161623 grados/s^2 por cuenta PWM
+b_altura  = K_thrust / m              = 0.006129 m/s^2 por cuenta PWM
 ```
+
+Parámetros del modelo: masa $m = 0.066$ kg en orden de vuelo y empuje de equilibrio `THROTTLE_HOVER = 1600` PWM, con $K_{thrust} = m\,g / 1600$. Si cambia cualquiera de los dos, hay que regenerar $\Gamma$ y $L$ en el cuaderno y copiarlos a `Config.h`.
 
 ---
 
@@ -101,7 +103,7 @@ En `updateKalmanAltura()` los cuatro senos y cosenos se evalúan una sola vez y 
 
 ### 4.1. IMU MPU6050
 * **Bus I2C** a 400 kHz (*Fast Mode*), pines `SDA = 11`, `SCL = 10`. El ToF comparte el mismo bus.
-* **DLPF** a ~98 Hz (registro `CONFIG = 0x02`), por debajo del límite de Nyquist (125 Hz).
+* **DLPF** con `CONFIG = 0x02`: 98 Hz en el giróscopo (retardo 2.8 ms) y 94 Hz en el acelerómetro (retardo 3.0 ms), ambos por debajo del límite de Nyquist (125 Hz).
 * **Escalas:** giroscopio $\pm 500\ ^\circ/\text{s}$ (65.5 LSB/(°/s)), acelerómetro $\pm 8g$ (4096 LSB/g).
 * **Offset de giróscopo:** promedio de 2000 muestras en el arranque.
 
@@ -162,17 +164,21 @@ Ganancias resueltas offline por la DARE sobre el modelo en unidades de firmware.
 
 | canal | ley | pesos | ganancia |
 | :--- | :--- | :--- | :--- |
-| Roll | $u = -(L_0(\hat\phi - (\phi_{ref} + \text{TRIM}_\phi)) + L_1 \hat p)$ | $Q = \mathrm{diag}(30.3683,\ 76.0562)$, $R = 1$ | `{4.4600, 7.1100}` |
-| Pitch | idéntica por simetría ($I_{xx} = I_{yy}$) | igual | `{4.4600, 7.1100}` |
-| Yaw | $u = -L(\hat r - r_{ref})$ | $Q = 20.0464$, $R = 1$ | `{4.4720}` |
-| Altura | $u = -(L_0(\hat z - z_{ref}) + L_1 \hat V_z)$ | $Q = \mathrm{diag}(300, 10)$, $R = 10^{-4}$ | `{1715.9370, 853.2671}` |
+| Roll | $u = -(L_0(\hat\phi - (\phi_{ref} + \text{TRIM}_\phi)) + L_1 \hat p)$ | $Q = \mathrm{diag}(30.3683,\ 76.0562)$, $R = 1$ | `{4.3103, 6.8657}` |
+| Pitch | idéntica por simetría ($I_{xx} = I_{yy}$) | igual | `{4.3103, 6.8657}` |
+| Yaw | $u = -L(\hat r - r_{ref})$ | $Q = 900$, $R = 1$ | `{29.7105}` |
+| Altura | $u = -(L_0(\hat z - z_{ref}) + L_1 \hat V_z)$ | $Q = \mathrm{diag}(300, 10)$, $R = 10^{-4}$ | `{1714.8206, 810.9143}` |
+
+Los pesos de actitud salieron de ajustar las ganancias en banco sobre el modelo preliminar y resolver el problema inverso (qué $Q$ reproduce esas ganancias). Al corregir la masa y el empuje de equilibrio se conservaron los pesos y se volvió a resolver la DARE. `Q_yaw` se subió de 20.0464 ($L = 4.47$) a 900 después de los vuelos: con la ganancia baja el dron giraba a ≈ −44 °/s, y con la nueva la deriva baja a ≈ −9 °/s.
 
 * La salida de altura se satura en $u_{alt} \in [-450, +450]$ PWM (`U_ALT_MAX` en `Config.h`). El límite anterior de $\pm 300$ era insuficiente: cancelar el efecto suelo exige restar ~318 PWM, y con $\pm 300$ el dron no podía completar el descenso.
 * En estado `APAGADO`, `calcularControl()` fuerza las cuatro salidas a cero y retorna de inmediato.
 
 ### Trims en lugar de integradores
 
-`TRIM_ROLL = -1.5°` y `TRIM_PITCH = 0.0°` desplazan la referencia de actitud para compensar la asimetría de peso residual. Es la alternativa deliberada a aumentar el estado con un integrador: el rechazo de perturbación estática se apoya en los integradores nativos de la planta.
+`TRIM_ROLL = -1.5°` y `TRIM_PITCH = 0.0°` desplazan la referencia de actitud para compensar la asimetría de peso residual. Es la alternativa deliberada a aumentar el estado con un integrador, que acumula error con el actuador saturado o con el dron apoyado y provoca *windup* en el despegue.
+
+Los integradores de la planta garantizan error nulo ante cambios de referencia, **pero no ante perturbaciones constantes en la entrada**: con un par constante $d$, el regulador proporcional sólo lo compensa sosteniendo un error $\theta_{ss} = d / L_0$ (en guiñada, $r_{ss} = d / L_{yaw}$). El trim cancela ese error en actitud. En guiñada, la deriva residual se acota con la ganancia.
 
 ---
 
@@ -182,12 +188,16 @@ Ganancias resueltas offline por la DARE sobre el modelo en unidades de firmware.
 stateDiagram-v2
     [*] --> APAGADO
     APAGADO --> DESPEGANDO: Comando UDP "1"
-    DESPEGANDO --> VOLANDO: DesiredAltitude >= AlturaObjetivoFinal
+    DESPEGANDO --> VOLANDO: z ≥ 0.47 m y |Vz| < 0.15 m/s
     DESPEGANDO --> ATERRIZANDO: Comando UDP "2"
     VOLANDO --> ATERRIZANDO: Comando UDP "2"
-    VOLANDO --> APAGADO: Comando UDP "0" (Emergencia)
-    ATERRIZANDO --> APAGADO: Rampa de apagado completa o UDP "0"
+    ATERRIZANDO --> APAGADO: dron apoyado o rampa de corte en cero
+    DESPEGANDO --> APAGADO: Comando UDP "0" (emergencia)
+    VOLANDO --> APAGADO: Comando UDP "0" (emergencia)
+    ATERRIZANDO --> APAGADO: Comando UDP "0" (emergencia)
 ```
+
+El comando `0` se acepta desde **cualquier** estado.
 
 1. **`APAGADO`** — `PWM = 0` en los cuatro motores, `baseThrottleDinamico` y `DesiredAltitude` a cero.
 2. **`DESPEGANDO`** — dos fases (ver §7.1).
@@ -198,7 +208,9 @@ stateDiagram-v2
 
 El LQR de altura es **proporcional puro, sin acción integral**. Eso impone dos relaciones de régimen permanente de las que sale todo el diseño de este apartado:
 
-$$V_z = \frac{\text{adelanto de la referencia}}{\tau_{alt}}, \qquad e_{ss} = \frac{\text{sesgo de empuje}}{L_{alt}[0]}, \qquad \tau_{alt} = \frac{L_{alt}[1]}{L_{alt}[0]} = 0.4973\ \text{s}$$
+$$V_z = \frac{\text{adelanto de la referencia}}{\tau_{alt}}, \qquad e_{ss} = \frac{\text{sesgo de empuje}}{L_{alt}[0]}, \qquad \tau_{alt} = \frac{L_{alt}[1]}{L_{alt}[0]} = 0.4729\ \text{s}$$
+
+`TAU_ALT` no se escribe a mano: `Config.h` lo calcula como `L_alt[1] / L_alt[0]`.
 
 La primera dice que **limitar cuánto puede adelantarse la referencia es limitar la velocidad vertical**: es el mecanismo de las dos rampas. La segunda dice que cualquier discrepancia entre `THROTTLE_HOVER` y el empuje de sustentación real deja al dron estacionado a una altura desplazada que el LQR por sí solo no puede cerrar: es la razón por la que el lazo de altura se abandona cerca del piso en lugar de insistir con él.
 
@@ -211,9 +223,9 @@ La primera dice que **limitar cuánto puede adelantarse la referencia es limitar
 
 **El lazo se cierra al separarse del piso, no al llegar a `THROTTLE_HOVER`.** Esperar la segunda condición dejaba al dron acelerando a lazo abierto con todo el empuje extra que aporta el efecto suelo.
 
-**Límite de adelanto en el ascenso.** Sin él la referencia alcanzaba la meta en 0.4 s y quedaba ~0.46 m por delante del dron; por la relación de §7.0 eso son 0.46/0.4973 = **0.93 m/s** de velocidad de ascenso comandada. El registro del 2026-08-21 muestra al dron cruzando los 0.50 m a **+1.19 m/s**, y a esa velocidad el sobrepico ya es inevitable: con `u_alt` saturado la desaceleración máxima es 1.63 m/s², o sea 0.43 m de frenado como mínimo. El pico medido fue de **1.372 m**, un 174 % por encima del objetivo, y tardó 12 s en estabilizarse.
+**Límite de adelanto en el ascenso.** Sin él la referencia alcanzaba la meta en 0.4 s y quedaba ~0.46 m por delante del dron; por la relación de §7.0, con las ganancias de ese momento ($\tau_{alt} = 0.4973$ s), eso son **0.93 m/s** de velocidad de ascenso comandada. El registro del 2026-08-21 muestra al dron cruzando los 0.50 m a **+1.19 m/s**, y a esa velocidad el sobrepico ya es inevitable: con `u_alt` saturado en ±300 la desaceleración máxima es 300 × 0.006129 = 1.84 m/s², o sea 0.38 m de frenado como mínimo. El pico medido fue de **1.372 m**, un 174 % por encima del objetivo, y tardó 12 s en estabilizarse.
 
-Acotando el adelanto a $\tau_{alt}\,v + $ margen $= 0.174$ m, la velocidad de ascenso queda acotada a ~0.35 m/s y el sobrepico desaparece.
+Acotando el adelanto a $\tau_{alt}\,v + $ margen $= 0.4729 \times 0.25 + 0.05 = 0.168$ m, la velocidad de ascenso queda acotada a ~0.35 m/s y el sobrepico desaparece.
 
 **La transición a `VOLANDO` mira la altura real**, no la referencia: exige $z \ge$ `AlturaObjetivoFinal` − 0.03 m **y** $|V_z| <$ 0.15 m/s. Antes miraba la referencia, que llegaba a la meta mucho antes que el dron.
 
@@ -253,7 +265,7 @@ Es **a lazo abierto**: sin realimentación de altura, sin integrador, sin regula
 | aterrizaje completo | 2.4–3.4 s desde el comando |
 | apagado | siempre con el dron apoyado ($z$ = 0.037 m, $V_z$ = 0) |
 | motores girando sobre el piso | 0.06–0.08 s |
-| velocidad de contacto | ~ −0.39 m/s (unos 5 mJ para 61 g: soltarlo desde 8 mm) |
+| velocidad de contacto | ~ −0.39 m/s (unos 5 mJ para 66 g: soltarlo desde 8 mm) |
 
 Si el contacto resulta demasiado seco, el único número a tocar es `RAMPA_CORTE`: bajarlo suaviza el apoyo a costa de alargar el descenso final.
 
@@ -264,14 +276,17 @@ Si el contacto resulta demasiado seco, el único número a tocar es `RAMPA_CORTE
 ### 8.1. Configuración física en 'X'
 
 ```
-   (M4 - FL - CCW)      (M1 - FR - CW)
+                  FRENTE
+   (M4 - FL - CW)       (M1 - FR - CCW)
                \      /
                 \    /
-                 [Dron]
+                 [Dron]        vista desde arriba
                 /    \
                /      \
-   (M3 - RL - CW)       (M2 - RR - CCW)
+   (M3 - RL - CCW)      (M2 - RR - CW)
 ```
+
+Diagonal M1–M3 antihoraria (CCW), diagonal M2–M4 horaria (CW), como en §2.1.3 de la tesis.
 
 ### 8.2. Ecuaciones del mezclador
 
@@ -282,7 +297,13 @@ float m3_raw = throttleBase + controlRoll - controlPitch + controlYaw; // M3 RL
 float m4_raw = throttleBase + controlRoll + controlPitch - controlYaw; // M4 FL
 ```
 
-Roll positivo (ala derecha abajo) baja los motores del lado derecho; los pares de yaw se reparten entre las diagonales que giran en el mismo sentido.
+| comando positivo | significado (NED) | motores que suben | motores que bajan |
+| :--- | :--- | :--- | :--- |
+| `controlRoll` | par de alabeo positivo: baja el ala derecha | M3, M4 | M1, M2 |
+| `controlPitch` | nariz arriba | M1, M4 | M2, M3 |
+| `controlYaw` | giro horario visto desde arriba | M1, M3 (CCW) | M2, M4 (CW) |
+
+**Por qué el signo de guiñada es éste.** El par de reacción de una hélice es opuesto a su giro: acelerar las hélices antihorarias (M1, M3) hace girar el cuerpo en sentido horario, que en `IMU.cpp` es `RateYaw` positivo. Con `u_yaw = -L_yaw * r`, un giro horario del cuerpo reduce M1 y M3 y frena el giro: realimentación negativa. Los vuelos lo confirman: al subir `L_yaw` de 4.47 a 29.71 la deriva bajó en vez de divergir.
 
 ### 8.3. Compensación por caída de tensión
 
@@ -321,7 +342,7 @@ Emitido a 50 Hz por el Core 0, `__attribute__((packed))`, hacia `Telemetria.py`.
 
 ## 🛠️ 10. Puesta en Vuelo
 
-1. **Ajuste del empuje de sustentación:** en `Supervisor.cpp`, fijar `THROTTLE_HOVER` con el valor PWM (0…4095) al que el dron se equilibra en el aire (típicamente 1600–2000).
+1. **Empuje de sustentación:** `THROTTLE_HOVER = 1600` PWM en `Supervisor.cpp`, para 66 g en orden de vuelo (los registros muestran ≈ 1590 PWM de equilibrio a 0.50 m). Este valor **también entra en el modelo** ($K_{thrust} = m\,g/1600$): si se cambia la batería o la masa, hay que recalcular las ganancias en el cuaderno, no sólo editar esta constante.
 2. **Telemetría:** encender el dron, conectarse a la red `LiteWing_Agus` (clave `12345678`) y ejecutar:
    ```bash
    python3 Telemetria.py
