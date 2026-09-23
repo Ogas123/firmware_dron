@@ -45,14 +45,19 @@ constexpr float Phi_2x2[2][2] = {
 // Los modelos continuos se derivan de Newton-Euler en rad/s^2 y se convierten
 // a grados/s^2 ANTES de discretizar por ZOH, de modo que Phi, Gamma y L viven
 // todos en el mismo sistema de unidades que los estados del filtro:
-//   b_actitud = (K_tau / I_xx) * 180/pi = 14.154261 grados/s^2 por cuenta PWM
-//   b_guiñada = (K_kappa / I_zz) * 180/pi = 0.161623 grados/s^2 por cuenta PWM
+//   b_actitud = (K_tau / I_xx) * 180/pi = 29.973091 grados/s^2 por cuenta PWM
+//   b_guiñada = (K_kappa / I_zz) * 180/pi = 2.115641 grados/s^2 por cuenta PWM
 //   b_altura  = K_thrust / m              = 0.006129 m/s^2 por cuenta PWM
+//
+// Modelo físico (notas.ipynb §1.1): k_f = m*g/(4*1600), brazo Quad-X d = L/sqrt(2),
+//   K_tau = 4*d*k_f, K_kappa = 4*c_tau*k_f (c_tau = 0.005964552 m, Förster 2015),
+//   I_xx = 2*m_m*L^2 + m_b*b^2/12, I_yy = 2*m_m*L^2 + m_b*a^2/12,
+//   I_zz = 4*m_m*L^2 + m_b*(a^2+b^2)/12, cuerpo a x b = 50 x 50 mm.
 // --------------------------------------------------------------------
 
 // Matrices de Entrada Estocástica (Gamma) con Alta Precisión Notación Científica
-constexpr float Gamma_roll_pitch[2] = {1.132341e-04f, 5.661704e-02f}; // [grados, grados/s] por cuenta PWM
-constexpr float Gamma_yaw           = 6.464926e-04f;                  // [grados/s] por cuenta PWM
+constexpr float Gamma_roll_pitch[2] = {2.397847e-04f, 1.198924e-01f}; // [grados, grados/s] por cuenta PWM
+constexpr float Gamma_yaw           = 8.462563e-03f;                  // [grados/s] por cuenta PWM
 constexpr float Gamma_alt_lqr[2]    = {4.903325e-08f, 2.451662e-05f}; // [m, m/s] por cuenta PWM
 constexpr float Gamma_alt_kf[2]     = {8.000000e-06f, 4.000000e-03f}; // [m, m/s] por (m/s^2) de AccZ
 
@@ -83,12 +88,12 @@ constexpr float R_alt_scalar = 0.0050f; // Ruido del sensor láser ToF VL53L1X
 // Ganancias de realimentación (L) precalculadas en estado estacionario (LQR Óptimo)
 // u(k) = -L0 * (pos - pos_ref) - L1 * vel
 // Todas son solucion exacta de la DARE sobre el modelo en unidades de firmware:
-//   Roll/Pitch : Q = diag(30.3683, 76.0562), R = 1       -> [4.3103, 6.8657]
-//   Yaw        : Q = 900,                    R = 1       -> 29.7105
-//   Altura     : Q = diag(300, 10),          R = 1e-4    -> [1714.8206, 810.9143]
-constexpr float L_roll[2]  = {4.3103f, 6.8657f}; // L0 (Ángulo) y L1 (Velocidad Angular)
-constexpr float L_pitch[2] = {4.3103f, 6.8657f}; // Idéntico por simetría estructural
-constexpr float L_yaw[1]   = {29.7105f};         // Tasa de Guiñada r
+//   Roll/Pitch : Q = diag(100, 250),            R = 1     -> [4.2944, 6.8112]
+//   Yaw        : Q = 1200,                      R = 1     -> 29.9336
+//   Altura     : Q = diag(300, 10),            R = 1e-4  -> [1714.8206, 810.9143]
+constexpr float L_roll[2]  = {4.2944f, 6.8112f}; // L0 (Ángulo) y L1 (Velocidad Angular)
+constexpr float L_pitch[2] = {4.2944f, 6.8112f}; // Idéntico por simetría estructural
+constexpr float L_yaw[1]   = {29.9336f};         // Tasa de Guiñada r
 constexpr float L_alt[2]   = {1714.8206f, 810.9143f};
 
 // Autoridad máxima del canal de altura, en cuentas PWM. Debe superar el empuje
@@ -105,9 +110,8 @@ constexpr float TAU_ALT    = L_alt[1] / L_alt[0]; // 0.4729 s
 // ==========================================================
 // TRIMS DE ACTITUD PARA ELIMINAR DERIVA LATERAL Y LONGITUDINAL
 // ==========================================================
-// TRIM_ROLL = -1.5f compensa la deriva a la derecha desplazando el setpoint a la izquierda
-constexpr float TRIM_ROLL  = -1.5f; // [grados]
-constexpr float TRIM_PITCH = 0.0f;  // [grados]
+constexpr float TRIM_ROLL  = -3.0f; // [grados]
+constexpr float TRIM_PITCH = -5.0f;  // [grados]
 
 // ==========================================================
 // 3. MATRICES INICIALES DE INCERTIDUMBRE (P0)

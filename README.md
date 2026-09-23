@@ -57,8 +57,8 @@ Es la regla que mantiene coherentes el cuaderno y el firmware, y conviene tenerl
 Newton-Euler entrega la aceleración angular en $\text{rad/s}^2$, así que la constante de entrada se convierte a $\text{grados/s}^2$ **antes** de discretizar por ZOH. De esa forma $\Phi$, $\Gamma$, $Q$, $R$ y $L$ viven todos en el mismo sistema de unidades que los estados del filtro:
 
 ```
-b_actitud = (K_tau / I_xx) * 180/pi = 14.154261 grados/s^2 por cuenta PWM
-b_guiñada = (K_kappa / I_zz) * 180/pi = 0.161623 grados/s^2 por cuenta PWM
+b_actitud = (K_tau / I_xx) * 180/pi = 29.973091 grados/s^2 por cuenta PWM
+b_guiñada = (K_kappa / I_zz) * 180/pi = 2.115641 grados/s^2 por cuenta PWM
 b_altura  = K_thrust / m              = 0.006129 m/s^2 por cuenta PWM
 ```
 
@@ -164,12 +164,12 @@ Ganancias resueltas offline por la DARE sobre el modelo en unidades de firmware.
 
 | canal | ley | pesos | ganancia |
 | :--- | :--- | :--- | :--- |
-| Roll | $u = -(L_0(\hat\phi - (\phi_{ref} + \text{TRIM}_\phi)) + L_1 \hat p)$ | $Q = \mathrm{diag}(30.3683,\ 76.0562)$, $R = 1$ | `{4.3103, 6.8657}` |
-| Pitch | idéntica por simetría ($I_{xx} = I_{yy}$) | igual | `{4.3103, 6.8657}` |
-| Yaw | $u = -L(\hat r - r_{ref})$ | $Q = 900$, $R = 1$ | `{29.7105}` |
+| Roll | $u = -(L_0(\hat\phi - (\phi_{ref} + \text{TRIM}_\phi)) + L_1 \hat p)$ | $Q = \mathrm{diag}(100,\ 250)$, $R = 1$ | `{4.2944, 6.8112}` |
+| Pitch | idéntica por simetría ($I_{xx} = I_{yy}$) | igual | `{4.2944, 6.8112}` |
+| Yaw | $u = -L(\hat r - r_{ref})$ | $Q = 1200$, $R = 1$ | `{29.9336}` |
 | Altura | $u = -(L_0(\hat z - z_{ref}) + L_1 \hat V_z)$ | $Q = \mathrm{diag}(300, 10)$, $R = 10^{-4}$ | `{1714.8206, 810.9143}` |
 
-Los pesos de actitud salieron de ajustar las ganancias en banco sobre el modelo preliminar y resolver el problema inverso (qué $Q$ reproduce esas ganancias). Al corregir la masa y el empuje de equilibrio se conservaron los pesos y se volvió a resolver la DARE. `Q_yaw` se subió de 20.0464 ($L = 4.47$) a 900 después de los vuelos: con la ganancia baja el dron giraba a ≈ −44 °/s, y con la nueva la deriva baja a ≈ −9 °/s.
+Las ganancias son la solución de la DARE sobre el modelo físico (brazo $L/\sqrt2$, cuerpo de placa $a \times b$, $K_\kappa = 4 c_\tau k_f$) con las ponderaciones de la tabla. En guiñada, los vuelos mostraron que con $L_{yaw} = 4.47$ el dron giraba a ≈ −44 °/s y con $29.71$ la deriva bajaba a ≈ −9 °/s; de ahí el peso alto de $Q_{yaw}$.
 
 * La salida de altura se satura en $u_{alt} \in [-450, +450]$ PWM (`U_ALT_MAX` en `Config.h`). El límite anterior de $\pm 300$ era insuficiente: cancelar el efecto suelo exige restar ~318 PWM, y con $\pm 300$ el dron no podía completar el descenso.
 * En estado `APAGADO`, `calcularControl()` fuerza las cuatro salidas a cero y retorna de inmediato.
